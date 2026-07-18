@@ -1,0 +1,1592 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Tracker de Datos para Ruleta Americana" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500;700&family=Inter:wght@400;600;800&display=swap"
+    rel="stylesheet">
+  <title>Roulette Tracker Pro</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Font Awesome para Iconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+  <header class="app-header">
+    <div class="header-content">
+      <h1>Roulette <span class="accent-gold">Tracker</span></h1>
+      <nav class="top-nav">
+        <button class="nav-btn active" data-target="tab-tomador">🔘 Tomador</button>
+        <button class="nav-btn" data-target="tab-estadisticas">📊 Stats</button>
+        <button class="nav-btn" data-target="tab-atrasos" style="color: #fbbf24; font-weight: bold;">⏳ Atrasos</button>
+        <button class="nav-btn" data-target="tab-ataque" style="color: #ef4444; font-weight: bold;">⚔️ Ataque</button>
+        <button class="nav-btn" data-target="tab-97-sesgo" style="color: #ef4444; font-weight: bold;">🎯 97</button>
+        <button class="nav-btn" data-target="tab-probabilidades">🎲 Prob</button>
+        <button class="nav-btn" data-target="tab-series">📈 Series</button>
+        <button class="nav-btn" data-target="tab-montecarlo">🧪 MC</button>
+        <button class="nav-btn" data-target="tab-chi">📊 CHI</button>
+        <button class="nav-btn" data-target="tab-ajustes">⚙️ Ajustes</button>
+        <button class="nav-btn" data-target="tab-lab-con" style="color: #60a5fa; font-weight: 800;">🧠 Lab_Con</button>
+        <button class="nav-btn" data-target="tab-winwin">🚀 WinWin</button>
+        <button class="nav-btn" data-target="tab-orion" style="color: #60a5fa; font-weight: 800;">🧠 ORION</button>
+        <button class="nav-btn" data-target="tab-tester" style="color: #4ade80; font-weight: bold;">🧰 Tester</button>
+      </nav>
+      <button id="btn-clear-session" class="btn-outline" style="display: none;">Limpiar</button>
+    </div>
+  </header>
+
+  <main class="app-container">
+
+    <!-- TAB 1: Tomador (Keypad + History) -->
+    <div id="tab-tomador" class="tab-content active">
+      <section class="panel keypad-panel" id="keypad-panel-draggable" style="display: flex; flex-direction: column;">
+        <div id="keypad-panel-header"
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; cursor: grab; padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 6px; margin: -0.2rem -0.2rem 0.5rem -0.2rem;">
+          <h2 class="panel-title" style="margin-bottom: 0; pointer-events: none;">Ingresar Tirada <span
+              style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; margin-left: 5px;">[Controles]</span>
+          </h2>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <div id="pano-scale-control-group"
+              style="display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.03); padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+              <label for="input-pano-scale"
+                style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Tamaño Paño:</label>
+              <input type="range" id="input-pano-scale" min="25" max="80" value="42"
+                style="width: 80px; height: 4px; accent-color: var(--color-gold); cursor: pointer;">
+              <span id="pano-scale-value"
+                style="font-size: 0.7rem; color: var(--color-gold); font-family: var(--font-numbers); font-weight: bold; min-width: 25px; text-align: right;">42px</span>
+            </div>
+            <button id="btn-clear-data" class="btn-outline"
+              style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: #ef4444; border-color: #ef4444;">Limpiar
+              Datos</button>
+            <button id="btn-toggle-input" class="btn-outline"
+              style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: var(--color-gold); border-color: var(--color-gold);">Modo
+              Cilindro</button>
+          </div>
+        </div>
+
+        <div id="input-mode-grid" class="keypad-container">
+          <div class="keypad-row row-zeroes" style="display: flex; align-items: center; width: 100%;">
+            <div class="zeroes-container">
+              <button class="key-btn key-green" data-num="0">0</button>
+              <button class="key-btn key-green" data-num="00">00</button>
+            </div>
+            <div class="zeroes-label key-btn key-dozen"
+              style="width: 30px; flex-shrink: 0; font-size: 0.55rem; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; text-transform: uppercase; opacity: 0.8; color: var(--color-gold); border: 1px solid #2a2f3a; background: transparent; pointer-events: none; letter-spacing: 1px;">
+              [Ceros]</div>
+            <div class="zeroes-arrow-placeholder"
+              style="width: auto; min-width: 65px; flex-shrink: 0; margin-left: 5px;"></div>
+          </div>
+          <div id="number-grid"
+            style="display: flex; flex-direction: column; gap: 6px; align-items: center; width: 100%;"></div>
+        </div>
+
+        <div id="input-mode-wheel" style="display: none; flex-direction: column; width: 100%; align-items: center;">
+          <div
+            style="font-size: 0.75rem; color: var(--color-gold); font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; text-align: center;">
+            [Cilindro]</div>
+          <div id="input-wheel-container"
+            style="width: 100%; aspect-ratio: 1/1; max-width: 410px; margin: 0 auto; position: relative;">
+            <!-- Input Wheel SVG goes here -->
+          </div>
+          <div style="width: 100%; max-width: 371px; margin-top: 0.5rem;">
+            <input type="range" id="input-wheel-rotation" min="0" max="360" value="0"
+              style="width: 100%; accent-color: var(--color-gold);">
+          </div>
+        </div>
+
+
+
+
+
+      </section>
+
+      <section class="panel history-panel" id="history-panel-draggable">
+        <div id="history-panel-header"
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; cursor: grab; padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 6px; margin: -0.2rem -0.2rem 0.5rem -0.2rem;">
+          <h2 class="panel-title"
+            style="margin-bottom: 0; pointer-events: none; font-size: 0.9rem; color: var(--color-gold);">History-panel
+          </h2>
+          <button id="btn-export-session" class="btn-outline"
+            style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: #10b981; border-color: #10b981; pointer-events: auto;">
+            <i class="fas fa-download"></i> Exportar
+          </button>
+        </div>
+
+        <div class="history-list" id="history-list">
+          <p class="empty-msg">No hay tiradas registradas.</p>
+        </div>
+      </section>
+
+      <!-- PANEL DE SERIES FLOTANTE E INDEPENDIENTE -->
+      <section class="panel series-floating-panel" id="series-panel-draggable"
+        style="display: flex; flex-direction: column;">
+        <div id="series-panel-header"
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; cursor: grab; padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border-radius: 6px; margin: -0.2rem -0.2rem 0.5rem -0.2rem;">
+          <h2 class="panel-title"
+            style="margin-bottom: 0; pointer-events: none; font-size: 0.9rem; color: var(--color-gold);">[Series-panel]
+          </h2>
+          <div style="display: flex; gap: 0.2rem;">
+            <button id="btn-sort-series-historial" class="btn-outline"
+              style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: var(--color-gold); border-color: var(--color-gold); pointer-events: auto;">
+              Historial
+            </button>
+            <button id="btn-sort-series-floating" class="btn-outline"
+              style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: var(--color-gold); border-color: var(--color-gold); pointer-events: auto;">
+              Atraso ↓
+            </button>
+          </div>
+        </div>
+
+        <div class="series-floating-list" id="series-floating-list">
+          <p class="empty-msg">Cargando series...</p>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- TAB: Atrasos -->
+    <div id="tab-atrasos" class="tab-content" style="overflow-y: auto; padding-bottom: 2rem;">
+      <section class="panel">
+        <h2 class="panel-title" style="text-align: center; margin-bottom: 1rem;">Frecuencias y Atrasos Históricos</h2>
+        <div id="atrasos-table-container" style="overflow-x: auto;">
+          <!-- Se inyecta tabla vía JS -->
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB: Ataque (WinWin) -->
+    <div id="tab-ataque" class="tab-content" style="overflow-y: auto; padding-bottom: 2rem;">
+      <section class="panel">
+        <h2 class="panel-title" style="text-align: center; margin-bottom: 1rem;">Oportunidades de Ataque (WinWin)</h2>
+        <div id="ataque-table-container" style="overflow-x: auto;">
+          <!-- Se inyecta UI de Ataque vía JS -->
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 2: Estadísticas -->
+    <div id="tab-estadisticas" class="tab-content" style="overflow-y: auto; padding-bottom: 2rem;">
+
+      <section class="panel" style="padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="file" id="file-import-local" accept=".txt,.csv" style="display: none;">
+          <button id="btn-import-local-header" class="btn-import-local-trigger btn-outline"
+            style="flex: 1; font-size: 0.8rem; padding: 0.4rem;">📂 Importar Local</button>
+          <button id="btn-import-sheets-header" class="btn-import-sheets-trigger btn-outline"
+            style="flex: 1; font-size: 0.8rem; padding: 0.4rem;">☁️ Importar Sheets</button>
+        </div>
+      </section>
+
+      <!-- GRÁFICA DEL CILINDRO -->
+      <section class="panel">
+        <h2 class="panel-title" style="text-align: center;">Mapa de Calor (Cilindro Físico)</h2>
+        <div id="wheel-container"
+          style="display: flex; justify-content: center; margin: 0.5rem 0; width: 100%; aspect-ratio: 1/1; max-width: 330px; margin-left: auto; margin-right: auto; position: relative;">
+          <!-- SVG rendered by JS -->
+        </div>
+        <div style="margin-top: 1rem; padding: 0 1rem;">
+          <label for="wheel-rotation"
+            style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+            <span>Girar Cilindro</span>
+            <span id="wheel-deg-label">0°</span>
+          </label>
+          <input type="range" id="wheel-rotation" min="0" max="360" value="0" list="tickmarks"
+            style="width: 100%; accent-color: var(--color-gold);">
+          <datalist id="tickmarks">
+            <option value="0"></option>
+            <option value="45"></option>
+            <option value="90"></option>
+            <option value="135"></option>
+            <option value="180"></option>
+            <option value="225"></option>
+            <option value="270"></option>
+            <option value="315"></option>
+            <option value="360"></option>
+          </datalist>
+          <div
+            style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); margin-top: 0.2rem; padding: 0 4px;">
+            <span>0</span>
+            <span>45</span>
+            <span>90</span>
+            <span>135</span>
+            <span>180</span>
+            <span>225</span>
+            <span>270</span>
+            <span>315</span>
+            <span>360</span>
+          </div>
+        </div>
+      </section>
+      <section class="panel stats-panel">
+        <h2 class="panel-title">Resumen Básico (Total: <span id="stat-total">0</span>)</h2>
+
+        <div class="stats-group">
+          <div class="stat-mini box-red">Roj <span id="stat-red">0%</span></div>
+          <div class="stat-mini box-black">Neg <span id="stat-black">0%</span></div>
+          <div class="stat-mini box-green">Ver <span id="stat-green">0%</span></div>
+        </div>
+
+        <div class="stats-group">
+          <div class="stat-mini">Par <span id="stat-even">0%</span></div>
+          <div class="stat-mini">Imp <span id="stat-odd">0%</span></div>
+        </div>
+
+        <div class="stats-group">
+          <div class="stat-mini">1-18 <span id="stat-low">0%</span></div>
+          <div class="stat-mini">19-36 <span id="stat-high">0%</span></div>
+        </div>
+
+        <div class="stats-group">
+          <div class="stat-mini">Doc 1 <span id="stat-d1">0%</span></div>
+          <div class="stat-mini">Doc 2 <span id="stat-d2">0%</span></div>
+          <div class="stat-mini">Doc 3 <span id="stat-d3">0%</span></div>
+        </div>
+
+        <div class="stats-group">
+          <div class="stat-mini">Col 1 <span id="stat-c1">0%</span></div>
+          <div class="stat-mini">Col 2 <span id="stat-c2">0%</span></div>
+          <div class="stat-mini">Col 3 <span id="stat-c3">0%</span></div>
+        </div>
+      </section>
+
+      <!-- ZONAS CALIENTES -->
+      <section class="panel">
+        <h2 class="panel-title">🔥 Zona Física Caliente</h2>
+        <div style="background: #2a2f3a; padding: 1rem; border-radius: 4px; text-align: center;">
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Centro + 4 vecinos en cilindro
+          </p>
+          <h3 id="stat-hotzone-center" style="font-size: 1.5rem; color: var(--color-gold);">-</h3>
+          <p id="stat-hotzone-members" style="font-size: 0.9rem; margin-top: 0.5rem; color: var(--text-main);">-</p>
+        </div>
+      </section>
+
+      <!-- RADIOGRAFÍA REAL -->
+      <section class="panel" id="real-radiography-panel">
+        <h2 class="panel-title">🩻 Radiografía de Sesión Real</h2>
+        <div style="background: #2a2f3a; padding: 1rem; border-radius: 4px; text-align: center;">
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Análisis profundo de impactos reales en el historial actual.
+          </p>
+          <button id="btn-real-radiography" class="btn-primary"
+            style="background:var(--roulette-red); border:none; color: white; cursor: pointer; font-size: 0.85rem; font-weight: bold; border-radius: 4px; width: 100%; padding: 0.6rem; margin-bottom: 1rem;">
+            GENERAR RADIOGRAFÍA ACTUAL
+          </button>
+          <div id="real-radiography-container" style="display:flex; flex-wrap:wrap; gap:6px; justify-content:center;">
+            <p class="empty-msg">Pulsa el botón para ver el mapa de calor real.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CHI CUADRADO -->
+      <section class="panel">
+        <h2 class="panel-title">🔬 Diagnóstico de Sesgo (CHI)</h2>
+        <div style="background: #2a2f3a; padding: 1rem; border-radius: 4px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Índice χ²:</span>
+            <span id="stat-chi-value" style="font-weight: bold; color: var(--color-gold);">0.00</span>
+          </div>
+          <p id="stat-chi-diag"
+            style="font-size: 0.85rem; color: var(--text-main); text-align: center; margin-top: 0.5rem;">Mesa muy joven
+            para diagnosticar</p>
+        </div>
+      </section>
+
+      <!-- MEDIAS DE ATRASO -->
+      <section class="panel">
+        <h2 class="panel-title">⏱️ Atraso Promedio (Media)</h2>
+        <div style="display: flex; gap: 0.5rem;">
+          <div
+            style="flex: 1; background: var(--roulette-red); padding: 0.75rem; border-radius: 4px; text-align: center; color: white;">
+            <div style="font-size: 0.75rem; margin-bottom: 0.2rem;">Rojo cada</div>
+            <div id="stat-mean-red" style="font-weight: bold; font-size: 1.2rem;">-</div>
+            <div style="font-size: 0.7rem;">tiros</div>
+          </div>
+          <div
+            style="flex: 1; background: #1a1d24; padding: 0.75rem; border-radius: 4px; text-align: center; border: 1px solid #475569;">
+            <div style="font-size: 0.75rem; margin-bottom: 0.2rem; color: var(--text-main);">Negro cada</div>
+            <div id="stat-mean-black" style="font-weight: bold; font-size: 1.2rem; color: var(--text-main);">-</div>
+            <div style="font-size: 0.7rem; color: var(--text-muted);">tiros</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RUNS TEST -->
+      <section class="panel">
+        <h2 class="panel-title">🔁 Test de Rachas (Runs Test)</h2>
+        <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          Wald-Wolfowitz: detecta clustering (rachas largas) o alternancia excesiva. |Z|&gt;1.96 → p&lt;0.05.
+        </p>
+        <div id="runs-test-container" style="display:flex; flex-direction:column; gap:0.5rem;">
+          <p class="empty-msg">Necesita mínimo 20 tiradas.</p>
+        </div>
+      </section>
+
+      <!-- VENTANA DESLIZANTE -->
+      <section class="panel">
+        <h2 class="panel-title">🪟 Análisis Ventana Deslizante</h2>
+        <div style="margin-bottom:0.75rem;">
+          <div
+            style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-muted); margin-bottom:0.3rem;">
+            <span>Últimas tiradas analizadas:</span>
+            <span id="window-size-label" style="color:var(--color-gold); font-weight:bold;">50</span>
+          </div>
+          <input type="range" id="window-size-slider" min="10" max="300" step="10" value="50"
+            style="width:100%; accent-color:var(--color-gold);">
+        </div>
+        <div id="window-stats-container">
+          <p class="empty-msg">Ingresa tiradas para ver el análisis de ventana.</p>
+        </div>
+      </section>
+
+      <!-- HISTOGRAMA DE DISTANCIAS -->
+      <section class="panel">
+        <h2 class="panel-title">📏 Saltos Físicos en Cilindro</h2>
+        <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.5rem;">
+          Distribución de distancias entre tiradas consecutivas. Azul intenso (±1–5) = zona de Dealer Signature.
+        </p>
+        <div id="dist-dealer-badge"
+          style="display:none; margin-bottom:0.5rem; padding:0.4rem 0.75rem; border-radius:4px; font-size:0.75rem; font-weight:bold; text-align:center;">
+        </div>
+        <div style="position:relative; height:180px;">
+          <canvas id="distance-histogram-canvas"></canvas>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- TAB 3: Probabilidades -->
+    <div id="tab-probabilidades" class="tab-content">
+      <section class="panel">
+        <h2 class="panel-title">Probabilidades (Real vs Teórico)</h2>
+        <div id="prob-container" class="prob-container">
+          <p class="empty-msg">Ingresa tiradas para ver probabilidades.</p>
+        </div>
+      </section>
+      <section class="panel">
+        <h2 id="wilson-ci-title" class="panel-title">📐 Intervalos de Confianza Wilson (95%)</h2>
+        <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          Rango real estadísticamente probable. Si el teórico queda fuera del IC → sesgo significativo.
+        </p>
+        <div id="ci-container">
+          <p class="empty-msg">Ingresa tiradas para ver intervalos de confianza.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 4: Alertas -->
+    <div id="tab-alertas" class="tab-content">
+      <section class="panel">
+        <h2 class="panel-title">Alertas Activas</h2>
+        <div id="alerts-container" class="alerts-container">
+          <p class="empty-msg">No hay alertas. La mesa está estable.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 5: Análisis de Series (Trader View) -->
+    <div id="tab-series" class="tab-content" style="overflow-y: auto; padding-bottom: 2rem;">
+      <section class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <h2 class="panel-title" style="margin-bottom: 0;">Análisis de Tendencia (DA) <span id="series-tab-count-label"
+              style="color: var(--text-muted); font-weight: 400; font-size: 0.9rem; margin-left: 0.4rem;">(0)</span>
+          </h2>
+          <div style="display: flex; gap: 0.4rem; align-items: center;">
+            <label style="font-size: 0.75rem; color: var(--text-muted);">Muestra:</label>
+            <div class="btn-group-window"
+              style="display: flex; background: #0f172a; padding: 2px; border-radius: 6px; border: 1px solid #1e293b;">
+              <button class="btn-window active" data-window="total"
+                style="padding: 0.2rem 0.6rem; font-size: 0.7rem; border-radius: 4px;">Total</button>
+              <button class="btn-window" data-window="100"
+                style="padding: 0.2rem 0.6rem; font-size: 0.7rem; border-radius: 4px;">100</button>
+              <button class="btn-window" data-window="200"
+                style="padding: 0.2rem 0.6rem; font-size: 0.7rem; border-radius: 4px;">200</button>
+            </div>
+            <label for="series-chart-concept-select" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 0.7rem;">Seleccion_Pulenta:</label>
+            <select id="series-chart-concept-select"
+              style="background: #0f172a; color: var(--text-main); border: 1px solid var(--border-color); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; margin-left: 0.3rem;">
+              <option value="series">1-Series</option>
+              <option value="jumps">2-Saltos Físicos cilindro</option>
+              <option value="externals">3-Externas</option>
+              <option value="groups">4-Docenas / Columnas</option>
+            </select>
+          </div>
+        </div>
+        <div id="series-charts-container" style="display: flex; flex-direction: column; gap: 2rem;">
+          <p class="empty-msg">Activa series en Ajustes para ver el análisis de tendencia.</p>
+        </div>
+      </section>
+
+      <!-- HISTOGRAMA DE DISTANCIAS (SALTOS DEL CILINDRO) EN SERIE -->
+      <section class="panel" id="series-distance-histogram-section"
+        style="margin-top: 1rem; display: none; resize: both; overflow: hidden; min-height: 250px; height: 320px; flex-direction: column;">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-shrink: 0; border-bottom: 1px solid #2a2f3a; padding-bottom: 0.5rem;">
+          <h2 class="panel-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">📏 Saltos Físicos en
+            Cilindro</h2>
+          <button id="btn-reset-zoom-distance" class="btn-outline" style="padding: 2px 8px; font-size: 0.65rem;">Reset
+            Zoom</button>
+        </div>
+        <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.5rem; flex-shrink: 0;">
+          Distribución de distancias entre tiradas consecutivas. Azul intenso (±1–5) = zona de Dealer Signature.
+        </p>
+        <div id="series-dist-dealer-badge"
+          style="display:none; margin-bottom:0.5rem; padding:0.4rem 0.75rem; border-radius:4px; font-size:0.75rem; font-weight:bold; text-align:center; flex-shrink: 0;">
+        </div>
+        <div style="position:relative; flex: 1; min-height: 100px;">
+          <canvas id="series-distance-histogram-canvas"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB 8: Monte Carlo Validation -->
+    <div id="tab-montecarlo" class="tab-content">
+
+      <section class="panel" style="border-left: 4px solid #60a5fa;">
+        <h2 class="panel-title">🧪 Validación Monte Carlo (ORION v4 Framework)</h2>
+        <p style="font-size:0.75rem; color:var(--text-muted); line-height:1.4; margin-bottom:0.75rem;">
+          Simulación masiva para validar la robustez del motor. Mide la tasa de <strong>Falsos Positivos (FPR)</strong>
+          bajo Azar Puro ($H_0$) y la <strong>Sensibilidad de Detección (TPR)</strong> bajo Sesgo Físico ($H_1$).
+          <br><br>
+          <span style="color:#60a5fa;">Métrica Clave:</span> Límite Inferior de Wilson (Confianza) y Ratio de
+          Probabilidad Secuencial (SPRT).
+        </p>
+
+        <div style="display:flex; flex-direction:column; gap:0.6rem;">
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+            <div style="display:flex; flex-direction:column; gap:0.2rem;">
+              <label style="font-size:0.72rem; color:var(--text-muted);">Iteraciones</label>
+              <input type="number" id="mc-iterations" value="200" min="50" max="2000" step="50"
+                style="background:#1e293b; border:1px solid #334155; color:var(--text-main); padding:0.3rem 0.5rem; border-radius:4px; font-size:0.85rem;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.2rem;">
+              <label style="font-size:0.72rem; color:var(--text-muted);">Umbral EdgeScore</label>
+              <input type="number" id="mc-threshold" value="0.95" min="0.80" max="0.99" step="0.01"
+                style="background:#1e293b; border:1px solid #334155; color:var(--text-main); padding:0.3rem 0.5rem; border-radius:4px; font-size:0.85rem;">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+            <div style="display:flex; flex-direction:column; gap:0.2rem;">
+              <label style="font-size:0.72rem; color:var(--text-muted);">Seed (reproducibilidad)</label>
+              <input type="number" id="mc-seed" value="42" min="1"
+                style="background:#1e293b; border:1px solid #334155; color:var(--text-main); padding:0.3rem 0.5rem; border-radius:4px; font-size:0.85rem;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.2rem;">
+              <label style="font-size:0.72rem; color:var(--text-muted);">Tipo de Sesgo (H1)</label>
+              <select id="mc-bias-type"
+                style="background:#1e293b; border:1px solid #334155; color:var(--text-main); padding:0.3rem 0.5rem; border-radius:4px; font-size:0.82rem;">
+                <option value="number">Número específico</option>
+                <option value="sector">Sector de rueda (Vecinos)</option>
+                <option value="dozen">Docena (1ª, 2ª o 3ª)</option>
+                <option value="column">Columna (1ª, 2ª o 3ª)</option>
+                <option value="color">Color (rojo/negro)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+            <div style="display:flex; flex-direction:column; gap:0.2rem;">
+              <label style="font-size:0.72rem; color:var(--text-muted);">Target (número / color)</label>
+              <input type="text" id="mc-bias-target" value="17" placeholder="ej: 17, red"
+                style="background:#1e293b; border:1px solid #334155; color:var(--text-main); padding:0.3rem 0.5rem; border-radius:4px; font-size:0.85rem;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.2rem;">
+              <label style="font-size:0.72rem; color:var(--text-muted);">Probabilidad sesgo (biasProb)</label>
+              <input type="number" id="mc-bias-prob" value="0.05" min="0.03" max="0.20" step="0.005"
+                style="background:#1e293b; border:1px solid #334155; color:var(--text-main); padding:0.3rem 0.5rem; border-radius:4px; font-size:0.85rem;">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+            <button id="btn-mc-run" class="btn-primary" style="width: 100%;">
+              ▶ Ejecutar Validación Monte Carlo
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Progress -->
+      <section class="panel" id="mc-progress-panel" style="display:none;">
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.4rem;">
+          <span id="mc-progress-label">Inicializando...</span>
+        </div>
+        <div style="background:#1a2035; height:8px; border-radius:4px; overflow:hidden;">
+          <div id="mc-progress-bar" style="background:var(--color-gold); height:100%; width:0%; transition:width 0.3s;">
+          </div>
+        </div>
+      </section>
+
+      <!-- Criterios de Aceptación -->
+      <section class="panel" id="mc-acceptance-panel" style="display:none;">
+        <h2 class="panel-title">✅ Criterios de Aceptación</h2>
+        <div id="mc-acceptance-list" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+      </section>
+
+      <!-- Métricas Clave -->
+      <section class="panel" id="mc-metrics-panel" style="display:none;">
+        <h2 class="panel-title">📊 Métricas Globales</h2>
+        <div id="mc-metrics-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.5rem;"></div>
+      </section>
+
+      <!-- Por Tamaño de Ventana -->
+      <section class="panel" id="mc-bywindow-panel" style="display:none;">
+        <h2 class="panel-title">🪟 FPR / TPR por Tamaño de Ventana</h2>
+        <div style="overflow-x:auto;">
+          <table id="mc-window-table" style="width:100%; border-collapse:collapse; font-size:0.75rem;">
+            <thead>
+              <tr style="color:var(--color-gold); border-bottom:1px solid #334155;">
+                <th style="padding:0.4rem; text-align:left;">Ventana</th>
+                <th style="padding:0.4rem; text-align:center;">FPR</th>
+                <th style="padding:0.4rem; text-align:center;">TPR</th>
+                <th style="padding:0.4rem; text-align:center;">Precisión</th>
+                <th style="padding:0.4rem; text-align:center;">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="mc-window-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Distribución Edge Score / Sector Heatmap -->
+      <section class="panel" id="mc-heatmap-panel" style="display:none;">
+        <h2 class="panel-title">📈 Mapa de Calor (H1)</h2>
+        <div id="mc-heatmap-container" style="display:flex; flex-wrap:wrap; gap:0.4rem;"></div>
+      </section>
+
+      <!-- Drift -->
+      <section class="panel" id="mc-drift-panel" style="display:none;">
+        <h2 class="panel-title">📉 Detección de Drift Temporal</h2>
+        <div id="mc-drift-stats" style="display:flex; gap:0.5rem;"></div>
+      </section>
+
+      <!-- Limitaciones -->
+      <section class="panel" id="mc-limits-panel" style="display:none;">
+        <h2 class="panel-title">⚠️ Limitaciones del Modelo</h2>
+        <ul id="mc-limits-list"
+          style="font-size:0.72rem; color:var(--text-muted); line-height:1.6; padding-left:1.2rem; margin:0;"></ul>
+      </section>
+
+    </div>
+
+    <!-- TAB 7: Kelly / Control de Caja -->
+    <div id="tab-kelly" class="tab-content">
+
+      <!-- Config de Bankroll -->
+      <section class="panel">
+        <h2 class="panel-title">💰 Control de Caja (Kelly)</h2>
+        <div style="display:flex; flex-direction:column; gap:0.75rem;">
+
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <label style="font-size:0.8rem; color:var(--text-muted); white-space:nowrap; min-width:80px;">Bankroll
+              ($):</label>
+            <input type="number" id="kelly-bankroll" min="1" step="1" value="100"
+              style="flex:1; background:#1e293b; border:1px solid #334155; color:var(--text-main); padding:0.35rem 0.5rem; border-radius:4px; font-size:0.9rem;">
+          </div>
+
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <label
+              style="font-size:0.8rem; color:var(--text-muted); white-space:nowrap; min-width:80px;">Fracción:</label>
+            <select id="kelly-fraction"
+              style="flex:1; background:#1e293b; border:1px solid #334155; color:var(--text-main); padding:0.35rem 0.5rem; border-radius:4px; font-size:0.85rem;">
+              <option value="1">Full Kelly (máx riesgo)</option>
+              <option value="0.5">Half Kelly</option>
+              <option value="0.25" selected>Quarter Kelly (recomendado)</option>
+              <option value="0.1">Tenth Kelly (conservador)</option>
+            </select>
+          </div>
+
+          <div style="display:flex; gap:0.5rem;">
+            <div style="flex:1; display:flex; gap:0.4rem; align-items:center;">
+              <label style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">Stop-Loss %:</label>
+              <input type="number" id="kelly-stoploss" min="5" max="50" value="20"
+                style="width:55px; background:#1e293b; border:1px solid #334155; color:var(--roulette-red); padding:0.3rem; border-radius:4px; font-size:0.85rem;">
+            </div>
+            <div style="flex:1; display:flex; gap:0.4rem; align-items:center;">
+              <label style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">Take-Profit %:</label>
+              <input type="number" id="kelly-takeprofit" min="5" max="100" value="30"
+                style="width:55px; background:#1e293b; border:1px solid #334155; color:var(--roulette-green); padding:0.3rem; border-radius:4px; font-size:0.85rem;">
+            </div>
+          </div>
+
+          <div style="display:flex; gap:0.4rem; align-items:center;">
+            <label style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">Confianza mínima:</label>
+            <input type="range" id="kelly-minconf" min="0" max="100" value="30" step="5"
+              style="flex:1; accent-color:var(--color-gold);">
+            <span id="kelly-minconf-label" style="font-size:0.8rem; color:var(--color-gold); min-width:35px;">30%</span>
+          </div>
+
+          <button id="btn-kelly-calc" class="btn-primary" style="width:100%; margin-top:0.25rem;">Calcular
+            Kelly</button>
+        </div>
+      </section>
+
+      <!-- Estado de Confianza -->
+      <section class="panel" id="kelly-confidence-panel" style="display:none;">
+        <h2 class="panel-title">📊 Confianza Estadística</h2>
+        <div
+          style="background:#2a2f3a; border-radius:4px; padding:0.75rem; display:flex; flex-direction:column; gap:0.5rem;">
+          <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:0.8rem; color:var(--text-muted);">Tiradas analizadas:</span>
+            <span id="kelly-total" style="font-weight:bold; color:var(--text-main);">-</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:0.8rem; color:var(--text-muted);">χ² (Chi-cuadrado):</span>
+            <span id="kelly-chi" style="font-weight:bold; color:var(--color-gold);">-</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:0.8rem; color:var(--text-muted);">Diagnóstico:</span>
+            <span id="kelly-chidiag"
+              style="font-size:0.75rem; color:var(--text-main); text-align:right; max-width:60%;">-</span>
+          </div>
+          <div style="margin-top:0.25rem;">
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:0.25rem;">
+              <span style="color:var(--text-muted);">Confianza en sesgo detectado</span>
+              <span id="kelly-conf-pct" style="color:var(--color-gold); font-weight:bold;">-</span>
+            </div>
+            <div style="background:#1a2035; height:8px; border-radius:4px; overflow:hidden;">
+              <div id="kelly-conf-bar"
+                style="background:var(--color-gold); height:100%; width:0%; transition:width 0.4s ease;"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Control de Caja: Límites -->
+      <section class="panel" id="kelly-limits-panel" style="display:none;">
+        <h2 class="panel-title">🛡️ Límites de Sesión</h2>
+        <div style="display:flex; gap:0.5rem;">
+          <div
+            style="flex:1; background:rgba(220,38,38,0.15); border:1px solid var(--roulette-red); border-radius:4px; padding:0.75rem; text-align:center;">
+            <div style="font-size:0.7rem; color:var(--roulette-red); margin-bottom:0.2rem; text-transform:uppercase;">
+              Stop-Loss</div>
+            <div id="kelly-stoploss-amt" style="font-size:1.2rem; font-weight:bold; color:var(--roulette-red);">$0</div>
+            <div style="font-size:0.65rem; color:var(--text-muted);">pérdida máxima</div>
+          </div>
+          <div
+            style="flex:1; background:rgba(22,163,74,0.15); border:1px solid var(--roulette-green); border-radius:4px; padding:0.75rem; text-align:center;">
+            <div style="font-size:0.7rem; color:var(--roulette-green); margin-bottom:0.2rem; text-transform:uppercase;">
+              Take-Profit</div>
+            <div id="kelly-takeprofit-amt" style="font-size:1.2rem; font-weight:bold; color:var(--roulette-green);">$0
+            </div>
+            <div style="font-size:0.65rem; color:var(--text-muted);">ganancia objetivo</div>
+          </div>
+        </div>
+        <div
+          style="background:#2a2f3a; border-radius:4px; padding:0.5rem; margin-top:0.5rem; font-size:0.7rem; color:var(--text-muted); line-height:1.4;">
+          ⚠️ Detener sesión si pérdidas superan el Stop-Loss o ganancias superan el Take-Profit.
+        </div>
+      </section>
+
+      <!-- Recomendaciones Kelly -->
+      <section class="panel" id="kelly-recs-panel" style="display:none;">
+        <h2 class="panel-title">📋 Recomendaciones de Apuesta</h2>
+        <div id="kelly-insufficient-msg"
+          style="display:none; background:rgba(212,175,55,0.1); border:1px solid var(--color-gold); border-radius:4px; padding:0.75rem; font-size:0.8rem; color:var(--color-gold); text-align:center;">
+        </div>
+        <div id="kelly-recs-list" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+      </section>
+
+    </div>
+
+    <!-- TAB 6: Estrategia -->
+    <div id="tab-estrategia" class="tab-content">
+      <section class="panel">
+        <h2 class="panel-title">Estrategia Sugerida</h2>
+        <div id="strategy-container" class="strategy-container">
+          <p class="empty-msg">Sin sugerencias. Espera a que se generen alertas.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB: CHI (Análisis de Sesgo por Grupos) -->
+    <div id="tab-chi" class="tab-content">
+      <div class="chi-header"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 1rem; background: rgba(255,159,67,0.1); border-radius: 8px; border: 1px solid rgba(255,159,67,0.2);">
+        <div>
+          <h2 style="color: #ff9f43; margin: 0; font-size: 1.2rem;">📊 Diagnóstico CHI² por Grupos</h2>
+          <p style="margin: 0; font-size: 0.7rem; color: var(--text-muted);">Detección de sesgo matemático (1 Grado de
+            Libertad)</p>
+        </div>
+        <div class="chi-window-selector" style="display: flex; gap: 5px;">
+          <button class="btn-window-chi active" data-window="total"
+            style="padding: 4px 10px; font-size: 0.7rem;">TOTAL</button>
+          <button class="btn-window-chi" data-window="100" style="padding: 4px 10px; font-size: 0.7rem;">100</button>
+          <button class="btn-window-chi" data-window="200" style="padding: 4px 10px; font-size: 0.7rem;">200</button>
+          <button class="btn-window-chi" data-window="500" style="padding: 4px 10px; font-size: 0.7rem;">500</button>
+        </div>
+      </div>
+
+      <div class="chi-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <!-- Columna 1: Series S_* -->
+        <section class="panel">
+          <h3 class="panel-title" style="color: #ff9f43;">🧮 Análisis de Series (S_*)</h3>
+          <div id="chi-series-container" class="chi-table-container">
+            <p class="empty-msg">Esperando datos...</p>
+          </div>
+        </section>
+
+        <!-- Columna 2: Externas -->
+        <section class="panel">
+          <h3 class="panel-title" style="color: #ff9f43;">🌍 Apuestas Externas</h3>
+          <div id="chi-externals-container" class="chi-table-container">
+            <p class="empty-msg">Esperando datos...</p>
+          </div>
+        </section>
+      </div>
+      <div id="chi-half-wheel-section" class="panel" style="margin-top: 1rem;">
+        <h3 class="panel-title" style="color: #ff9f43;">🎡 Sesgo Media Ruleta (Sectores de 19 Números)</h3>
+        <div id="chi-half-wheel-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          <p class="empty-msg">Calculando mitades de rueda...</p>
+        </div>
+      </div>
+      <div id="chi-reversion-section" class="panel"
+        style="margin-top: 1rem; border: 2px solid rgba(245, 158, 11, 0.2); background: rgba(245, 158, 11, 0.02);">
+        <h3 class="panel-title" style="color: #f59e0b;">⚡ Presión de Reversión (Probabilidad de Quiebre de Racha)</h3>
+        <div id="chi-reversion-container"
+          style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+          <p class="empty-msg">Analizando tensión de sectores fríos...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: Ajustes -->
+    <div id="tab-ajustes" class="tab-content">
+      <section class="panel">
+        <h2 class="panel-title">⚙️ Configuración 🇩🇪</h2>
+
+        <!-- ÍNDICE DE SECCIONES (ACTUALIZADO Y AL INICIO) -->
+        <div
+          style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border-left: 3px solid var(--color-gold); margin-bottom: 2rem; margin-top: 1rem;">
+          <h4
+            style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 1px;">
+            Contenido:</h4>
+          <ul
+            style="list-style: none; padding: 0; font-size: 0.85rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <li><a href="#sec-orion" style="color: #60a5fa; text-decoration: none;">[0] Motor ORION (v4)</a></li>
+            <li><a href="#sec-gestor" style="color: var(--color-gold); text-decoration: none;">[1] Gestor de Series</a>
+            </li>
+            <li><a href="#sec-alertas" style="color: var(--color-gold); text-decoration: none;">[2] Configuración de
+                Alertas</a></li>
+            <li><a href="#sec-rangos" style="color: var(--color-gold); text-decoration: none;">[3] Rangos WinWin</a>
+            </li>
+            <li><a href="#sec-sheets" style="color: var(--color-gold); text-decoration: none;">[4] Google Sheets</a>
+            </li>
+            <li><a href="#sec-import" style="color: var(--color-gold); text-decoration: none;">[5] Importar Datos</a>
+            </li>
+            <li><a href="#sec-visual" style="color: var(--color-gold); text-decoration: none;">[6] Visualización</a>
+            </li>
+            <li><a href="#sec-97sesgo" style="color: #ef4444; text-decoration: none;">[8] Configuración 97 Sesgo</a>
+            </li>
+            <li><a href="#sec-tomador" style="color: #4ade80; text-decoration: none;">[7] Controles del Tomador</a></li>
+          </ul>
+        </div>
+
+        <!-- SECCIÓN VISUALIZACIÓN -->
+        <div id="sec-visual"
+          style="margin-top: 1.5rem; background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid rgba(96, 165, 250, 0.2); box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);">
+          <h3
+            style="font-size: 0.9rem; margin-bottom: 1rem; color: #60a5fa; display: flex; align-items: center; gap: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">
+            <span>👁️</span> Interfaz de Usuario (UI)
+          </h3>
+
+          <div class="form-group"
+            style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; background: rgba(212, 175, 55, 0.05); padding: 1rem; border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.2);">
+            <label style="font-size: 1rem; color: var(--text-main); font-weight: 800; margin-bottom: 0;">MODO
+              ACTIVO:</label>
+            <select id="set-visual-mode" class="input-setting"
+              style="width: auto; min-width: 300px; background: #0f172a; border: 2px solid var(--color-gold); padding: 0.8rem 1.5rem; border-radius: 8px; font-size: 1.1rem; color: var(--color-gold); outline: none; font-weight: 900; text-align: center; box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);">
+              <option value="analisis" selected>💎 MODO ANÁLISIS DETALLADO</option>
+            </select>
+          </div>
+
+          <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
+            <label style="font-size: 0.8rem; color: var(--text-main); margin-bottom: 0.8rem; display: block;">Datos
+              Visibles en la Tabla:</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.8rem;">
+
+              <div class="setting-item-with-switch"
+                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.5rem 0.75rem; border-radius: 6px;">
+                <label style="font-size:0.75rem; color: var(--text-muted);">Ceros (0/00)</label>
+                <label class="switch"><input type="checkbox" id="set-col-zero" checked><span
+                    class="slider-switch"></span></label>
+              </div>
+
+              <div class="setting-item-with-switch"
+                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.5rem 0.75rem; border-radius: 6px;">
+                <label style="font-size:0.75rem; color: var(--text-muted);">Color (R/N)</label>
+                <label class="switch"><input type="checkbox" id="set-col-color" checked><span
+                    class="slider-switch"></span></label>
+              </div>
+
+              <div class="setting-item-with-switch"
+                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.5rem 0.75rem; border-radius: 6px;">
+                <label style="font-size:0.75rem; color: var(--text-muted);">Paridad (P/I)</label>
+                <label class="switch"><input type="checkbox" id="set-col-parity" checked><span
+                    class="slider-switch"></span></label>
+              </div>
+
+              <div class="setting-item-with-switch"
+                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.5rem 0.75rem; border-radius: 6px;">
+                <label style="font-size:0.75rem; color: var(--text-muted);">Rango (1-18)</label>
+                <label class="switch"><input type="checkbox" id="set-col-range" checked><span
+                    class="slider-switch"></span></label>
+              </div>
+
+              <div class="setting-item-with-switch"
+                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.5rem 0.75rem; border-radius: 6px;">
+                <label style="font-size:0.75rem; color: var(--text-muted);">Docenas</label>
+                <label class="switch"><input type="checkbox" id="set-col-dozens" checked><span
+                    class="slider-switch"></span></label>
+              </div>
+
+              <div class="setting-item-with-switch"
+                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 0.5rem 0.75rem; border-radius: 6px;">
+                <label style="font-size:0.75rem; color: var(--text-muted);">Columnas</label>
+                <label class="switch"><input type="checkbox" id="set-col-columns" checked><span
+                    class="slider-switch"></span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 97 SESGO -->
+        <div id="sec-97sesgo"
+          style="margin-top: 1.5rem; background: rgba(239, 68, 68, 0.03); padding: 1rem; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.2);">
+          <h3
+            style="font-size: 0.9rem; margin-bottom: 1rem; color: #ef4444; display: flex; align-items: center; gap: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">
+            <span>🔥</span> Configuración 97 Sesgo
+          </h3>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label
+                style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem; display: block;">ANALISIS_SESGO_DUAL
+                (Tamaño):</label>
+              <input type="number" id="set-97-sector-size" value="5" min="2" max="18"
+                style="width: 100%; background: #1e293b; border: 1px solid #334155; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; color: var(--text-main);">
+            </div>
+            <div class="form-group">
+              <label
+                style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem; display: block;">TOP_SESGO_DUAL
+                (Tamaño):</label>
+              <input type="number" id="set-97-top-sector-size" value="5" min="2" max="18"
+                style="width: 100%; background: #1e293b; border: 1px solid #334155; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; color: var(--text-main);">
+            </div>
+            <div class="form-group">
+              <label
+                style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem; display: block;">Cantidad
+                Top del Ranking:</label>
+              <input type="number" id="set-97-top-ranking" value="10" min="1" max="38"
+                style="width: 100%; background: #1e293b; border: 1px solid #334155; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; color: var(--text-main);">
+            </div>
+            <div class="form-group">
+              <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem; display: block;">Fila
+                Inicial:</label>
+              <input type="number" id="set-97-start-row" value="1" min="1"
+                style="width: 100%; background: #1e293b; border: 1px solid #334155; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; color: var(--text-main);">
+            </div>
+            <div class="form-group">
+              <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem; display: block;">Fila
+                Final (0 = Última):</label>
+              <input type="number" id="set-97-end-row" value="0" min="0"
+                style="width: 100%; background: #1e293b; border: 1px solid #334155; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; color: var(--text-main);">
+            </div>
+            <div class="form-group">
+              <label
+                style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem; display: block;">Cantidad de
+                muestra total:</label>
+              <div id="display-97-total-sample"
+                style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid #334155; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; color: var(--color-gold); font-weight: bold; text-align: center;">
+                0</div>
+            </div>
+          </div>
+
+          <p style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.8rem; font-style: italic;">
+            * Estos valores ajustan la sensibilidad de la pestaña 97 Sesgo. El tamaño de sector divisor de 36 es
+            recomendado.
+          </p>
+        </div>
+
+        <!-- SECCIÓN CONTROLES DEL TOMADOR -->
+        <div id="sec-tomador"
+          style="margin-top: 1.5rem; background: rgba(74, 222, 128, 0.03); padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(74, 222, 128, 0.15);">
+          <h3
+            style="font-size: 0.8rem; margin-bottom: 0.75rem; color: #4ade80; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🎮</span> Controles del Tomador
+          </h3>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+            <div class="setting-item-with-switch"
+              style="flex-direction: column; align-items: center; text-align: center; padding: 0.5rem; gap: 0.4rem;">
+              <label style="font-size: 0.7rem; margin: 0;">Ceros (0/00)</label>
+              <label class="switch"><input type="checkbox" id="set-show-zeroes" checked><span
+                  class="slider-switch"></span></label>
+            </div>
+            <div class="setting-item-with-switch"
+              style="flex-direction: column; align-items: center; text-align: center; padding: 0.5rem; gap: 0.4rem;">
+              <label style="font-size: 0.7rem; margin: 0;">Botón Limpiar</label>
+              <label class="switch"><input type="checkbox" id="set-show-clear" checked><span
+                  class="slider-switch"></span></label>
+            </div>
+            <div class="setting-item-with-switch"
+              style="flex-direction: column; align-items: center; text-align: center; padding: 0.5rem; gap: 0.4rem;">
+              <label style="font-size: 0.7rem; margin: 0;">Atr. Docenas</label>
+              <label class="switch"><input type="checkbox" id="set-show-dozen-delays" checked><span
+                  class="slider-switch"></span></label>
+            </div>
+            <div class="setting-item-with-switch"
+              style="flex-direction: column; align-items: center; text-align: center; padding: 0.5rem; gap: 0.4rem;">
+              <label style="font-size: 0.7rem; margin: 0;">Atr. Columnas</label>
+              <label class="switch"><input type="checkbox" id="set-show-column-delays" checked><span
+                  class="slider-switch"></span></label>
+            </div>
+            <div class="setting-item-with-switch"
+              style="flex-direction: column; align-items: center; text-align: center; padding: 0.5rem; gap: 0.4rem;">
+              <label style="font-size: 0.7rem; margin: 0;">Resaltado (Alertas)</label>
+              <label class="switch"><input type="checkbox" id="set-show-highlights" checked><span
+                  class="slider-switch"></span></label>
+            </div>
+          </div>
+        </div>
+        <form id="settings-form" class="settings-form">
+
+          <!-- ⭐ GESTOR DE SERIES AL INICIO -->
+          <div id="sec-gestor" class="form-group"
+            style="margin-bottom: 1rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(212,175,55,0.15);">
+            <h3
+              style="font-size: 0.8rem; margin-bottom: 0.75rem; color: var(--color-gold); display: flex; align-items: center; gap: 0.4rem;">
+              <span>⭐</span> Gestor de Series Personalizadas <span id="series-count-label"
+                style="color: var(--text-muted); font-weight: 400; margin-left: 0.3rem;">(0)</span>
+            </h3>
+
+            <!-- Formulario de creación (Layout Horizontal) -->
+            <div
+              style="padding-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 0.75rem;">
+              <div id="btn-show-form"
+                style="color: #4444ff; font-weight: bold; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 1.1rem;">+</span> Agregar / Editar Serie
+              </div>
+
+              <div id="series-inputs-container"
+                style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <input type="text" id="new-series-name" placeholder="Nombre (S_72)" class="input-setting"
+                  style="flex: 1; min-width: 80px; text-align: left; font-size: 0.8rem; padding: 0.35rem 0.6rem; height: 32px;">
+                <input type="text" id="new-series-nums" placeholder="Números (5, 23...)" class="input-setting"
+                  style="flex: 2; min-width: 180px; text-align: left; font-size: 0.8rem; padding: 0.35rem 0.6rem; height: 32px;">
+                <button type="button" id="btn-add-series"
+                  style="background: var(--color-gold); border: none; color: #000; font-weight: 800; font-size: 0.7rem; cursor: pointer; padding: 0 0.8rem; border-radius: 4px; height: 32px; white-space: nowrap;">
+                  GUARDAR
+                </button>
+              </div>
+            </div>
+
+            <!-- Lista de series -->
+            <div id="custom-series-list" style="display: flex; flex-direction: column; gap: 0.25rem;">
+              <!-- JS rendered -->
+            </div>
+          </div>
+
+          <!-- [Sección - 2] CONFIGURACIÓN DE ALERTAS (ATRASOS) -->
+          <div id="sec-alertas" class="form-group"
+            style="margin-top: 0.75rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(212,175,55,0.15);">
+            <h3
+              style="font-size: 0.8rem; margin-bottom: 0.75rem; color: var(--color-gold); display: flex; align-items: center; gap: 0.4rem;">
+              <span>⚠️</span> Alertas de Atraso (Tiros sin aparecer)
+            </h3>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem;">
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label
+                  style="font-size: 0.65rem; color: var(--text-muted); margin: 0; text-transform: uppercase;">Color</label>
+                <input type="number" id="set-color" value="5" class="input-setting"
+                  style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label
+                  style="font-size: 0.65rem; color: var(--text-muted); margin: 0; text-transform: uppercase;">Par/Imp</label>
+                <input type="number" id="set-parity" value="5" class="input-setting"
+                  style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label
+                  style="font-size: 0.65rem; color: var(--text-muted); margin: 0; text-transform: uppercase;">Docenas</label>
+                <input type="number" id="set-dozen" value="7" class="input-setting"
+                  style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label
+                  style="font-size: 0.65rem; color: var(--text-muted); margin: 0; text-transform: uppercase;">Colum</label>
+                <input type="number" id="set-column" value="7" class="input-setting"
+                  style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label
+                  style="font-size: 0.65rem; color: var(--text-muted); margin: 0; text-transform: uppercase;">Me/Ma</label>
+                <input type="number" id="set-highlow" value="5" class="input-setting"
+                  style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label
+                  style="font-size: 0.65rem; color: var(--text-muted); margin: 0; text-transform: uppercase;">Series</label>
+                <input type="number" id="set-series-alert" value="10" class="input-setting"
+                  style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+            </div>
+          </div>
+
+          <!-- [Sección - 3] RANGOS DE MUESTRA WINWIN -->
+          <div id="sec-rangos" class="form-group"
+            style="margin-top: 1.5rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(212,175,55,0.15);">
+            <h3
+              style="font-size: 0.8rem; margin-bottom: 0.75rem; color: var(--color-gold); display: flex; align-items: center; gap: 0.4rem;">
+              <span>📊</span> Rangos de Muestra (WinWin Engine)
+            </h3>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem;">
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label
+                  style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Externos</label>
+                <input type="number" id="set-range-ext" value="100" class="input-setting"
+                  style="width: 100%; height: 24px; font-size: 0.75rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label
+                  style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Docenas</label>
+                <input type="number" id="set-range-doc" value="100" class="input-setting"
+                  style="width: 100%; height: 24px; font-size: 0.75rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">CHI
+                  Sesgo</label>
+                <input type="number" id="set-range-chi" value="100" class="input-setting"
+                  style="width: 100%; height: 24px; font-size: 0.75rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Ley
+                  Tercio</label>
+                <input type="number" id="set-range-ley" value="6" class="input-setting"
+                  style="width: 100%; height: 24px; font-size: 0.75rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label
+                  style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Win-Win</label>
+                <input type="number" id="set-range-ww" value="200" class="input-setting"
+                  style="width: 100%; height: 24px; font-size: 0.75rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Atr.
+                  Series</label>
+                <input type="number" id="set-range-atr" value="500" class="input-setting"
+                  style="width: 100%; height: 24px; font-size: 0.75rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label
+                  style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Seisenas</label>
+                <input type="number" id="set-range-seis" value="100" class="input-setting"
+                  style="width: 100%; height: 24px; font-size: 0.75rem; text-align: center; padding: 0;">
+              </div>
+              <div
+                style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label
+                  style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Debilidad</label>
+                <input type="number" id="set-weakness-count" value="3" class="input-setting"
+                  style="width: 100%; height: 24px; font-size: 0.75rem; text-align: center; padding: 0;">
+              </div>
+            </div>
+
+            <div
+              style="margin-top: 0.5rem; padding: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+              <label style="font-size: 0.75rem; color: var(--color-gold); font-weight: 800;">TOTAL DATA:</label>
+              <span id="display-total-spins"
+                style="font-weight: 800; color: var(--roulette-green); font-size: 0.9rem;">0</span>
+            </div>
+
+            <button id="btn-rescan-history" type="button" class="btn-outline"
+              style="width: 100%; margin-top: 0.75rem; border-color: rgba(212,175,55,0.4); color: var(--color-gold); font-size: 0.75rem; padding: 0.4rem;">
+              🔄 Rescanear Base de Datos
+            </button>
+
+            <div
+              style="margin-top: 0.5rem; padding: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+              <label style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Exportación Sheets:</label>
+              <label class="switch"><input type="checkbox" id="set-sheet-export"><span
+                  class="slider-switch"></span></label>
+            </div>
+          </div>
+          <!-- [Sección - 4] CONEXIÓN GOOGLE SHEETS -->
+          <div id="sec-sheets" class="form-group"
+            style="margin-top: 1.5rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 10px; border: 1px solid rgba(212,175,55,0.15);">
+            <h3
+              style="font-size: 0.8rem; margin-bottom: 0.75rem; color: var(--color-gold); display: flex; align-items: center; gap: 0.4rem;">
+              <span>☁️</span> Conexión Google Sheets
+            </h3>
+
+            <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+              <div
+                style="display: flex; flex-direction: column; gap: 0.3rem; background: rgba(0,0,0,0.15); padding: 0.5rem 0.75rem; border-radius: 6px;">
+                <label style="font-size: 0.7rem; color: var(--text-muted); margin: 0;">URL de la Planilla:</label>
+                <input type="text" id="set-sheet-url" placeholder="https://docs.google.com/..." class="input-setting"
+                  style="width: 100%; height: 26px; font-size: 0.75rem; text-align: left; padding: 0 0.5rem; max-width: 100%;">
+              </div>
+
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.15); padding: 0.4rem 0.75rem; border-radius: 6px;">
+                <label style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Nombre Hoja:</label>
+                <input type="text" id="set-sheet-name" placeholder="Hoja1" class="input-setting"
+                  style="width: 100px; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+
+              <div
+                style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.15); padding: 0.4rem 0.75rem; border-radius: 6px;">
+                <label style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Columna:</label>
+                <input type="text" id="set-sheet-column" placeholder="A" class="input-setting"
+                  style="width: 60px; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+            </div>
+
+            <button type="button" id="btn-import-sheets-settings" class="btn-import-sheets-trigger btn-primary"
+              style="margin-top: 0.75rem; background: #2563eb; width: 100%; font-size: 0.8rem; padding: 0.5rem;">
+              ☁️ Importar desde Sheets
+            </button>
+          </div>
+
+          <div style="margin-top: 2rem; border-top: 2px solid rgba(212,175,55,0.3); padding-top: 1.5rem;">
+            <h3 style="font-size: 0.8rem; margin-bottom: 0.75rem; color: var(--color-gold); display: flex; align-items: center; gap: 0.4rem;">
+              <span>⚠️</span> WinWin
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.4rem; margin-bottom: 1.5rem;">
+              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Ataque Naranja (Delta)</label>
+                <input type="number" id="set-ataque-orange" value="-2" class="input-setting" style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Ataque Rojo (Delta)</label>
+                <input type="number" id="set-ataque-red" value="0" class="input-setting" style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Seisenas (Naranja)</label>
+                <input type="number" id="set-seisena-alert" value="7" class="input-setting" style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Seisenas (Rojo)</label>
+                <input type="number" id="set-seisena-critical" value="10" class="input-setting" style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 1rem; border-top: 2px solid rgba(34,197,94,0.25); padding-top: 1.5rem;">
+            <h3 style="font-size: 0.8rem; margin-bottom: 0.75rem; color: #22c55e; display: flex; align-items: center; gap: 0.4rem;">
+              <span>⏳</span> ATRASOS
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.4rem;">
+              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Límite alcanzado</label>
+                <input type="number" id="set-atrasos-limit" value="5" class="input-setting" style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Crítico</label>
+                <input type="number" id="set-atrasos-critical" value="9" class="input-setting" style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.15); padding: 0.4rem; border-radius: 4px; gap: 0.2rem;">
+                <label style="font-size: 0.65rem; color: var(--text-muted); text-align: center; margin: 0;">Máximo (últimos N)</label>
+                <input type="number" id="set-atrasos-max-window" value="100" min="1" class="input-setting" style="width: 100%; height: 26px; font-size: 0.8rem; text-align: center; padding: 0;">
+              </div>
+            </div>
+          </div>
+
+            <button type="submit" class="btn-primary"
+              style="width: 100%; font-weight: 800; font-size: 1rem; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(212,175,55,0.2);">
+              💾 GUARDAR TODOS LOS AJUSTES
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <!-- TAB: WINWIN ESTRATEGIAS -->
+    <section id="tab-winwin" class="tab-content">
+      <div class="card">
+        <h2 style="color: var(--color-gold); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+          <span>🚀 WinWin & Estrategias Avanzadas</span>
+        </h2>
+
+        <!-- Dashboard de Alertas Rápidas -->
+        <div
+          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="stat-card" style="border-left: 3px solid var(--color-gold); padding: 0.75rem;">
+            <div class="stat-label" style="font-size: 0.65rem;">Alertas WinWin</div>
+            <div id="winwin-alert-count" class="stat-value" style="font-size: 1.2rem;">0</div>
+          </div>
+          <div class="stat-card" style="border-left: 3px solid var(--roulette-red); padding: 0.75rem;">
+            <div class="stat-label" style="font-size: 0.65rem;">Atrasos Críticos</div>
+            <div id="atraso-alert-count" class="stat-value" style="font-size: 1.2rem;">0</div>
+          </div>
+          <div class="stat-card" style="border-left: 3px solid var(--roulette-green); padding: 0.75rem;">
+            <div class="stat-label" style="font-size: 0.65rem;">Anomalías CHI</div>
+            <div id="chi-alert-count" class="stat-value" style="font-size: 1.2rem;">0</div>
+          </div>
+        </div>
+
+        <!-- PROTOTIPO ENGINE DASHBOARD (FORMATO TARJETAS) -->
+        <div id="prototipo-table-body" style="display: flex; flex-direction: column; gap: 0rem;">
+          <!-- Tarjetas generadas por JS -->
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+          <!-- Ley del Tercio (Mantenemos visual) -->
+          <div>
+            <h3 style="font-size: 0.8rem; color: var(--color-gold); margin-bottom: 0.75rem; text-transform: uppercase;">
+              ⚖️ Ley del Tercio</h3>
+            <div id="ley-tercio-container"></div>
+          </div>
+
+          <!-- CHI Section (Mantenemos visual detallado) -->
+          <div>
+            <h3 style="font-size: 0.8rem; color: var(--color-gold); margin-bottom: 0.75rem; text-transform: uppercase;">
+              🔍 Sesgo CHI Detalles</h3>
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+              <div id="chi-nums-list" style="display: flex; flex-wrap: wrap; gap: 0.35rem;"></div>
+              <div id="chi-bets-list" style="display: flex; flex-direction: column; gap: 0.4rem;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: ORION AI (Triangulación y Arbitraje) -->
+    <div id="tab-orion" class="tab-content" style="overflow-y: auto; padding-bottom: 2rem;">
+      <section class="panel"
+        style="border-color: #60a5fa; background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%); min-height: 80vh;">
+        <h2 class="panel-title"
+          style="color: #60a5fa; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span>🧠 ORION: Árbitro de Señales</span>
+          <span
+            style="font-size: 0.7rem; background: rgba(96, 165, 250, 0.2); padding: 0.2rem 0.5rem; border-radius: 4px;">v4.2
+            PRO</span>
+        </h2>
+
+        <!-- Status Banner (Dinámico) -->
+        <div id="orion-status-banner"
+          style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 8px; border: 1px solid rgba(96, 165, 250, 0.2); margin-bottom: 1.5rem; background: rgba(15, 23, 42, 0.5); transition: all 0.3s ease;">
+          <div class="empty-msg">Analizando flujo de datos...</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; gap: 0.5rem;">
+            <button id="btn-orion-autocalibrate" class="btn-outline"
+              style="flex: 1; border-color: #60a5fa; color: #60a5fa; font-size: 0.75rem; padding: 0.6rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+              <i class="fas fa-microchip"></i> Autocalibrar Motor
+            </button>
+            <button id="btn-debug-bias" class="btn-outline"
+              style="flex: 1; border-color: #f59e0b; color: #f59e0b; font-size: 0.75rem; padding: 0.6rem;">
+              <i class="fas fa-vial"></i> Inyectar Sesgo
+            </button>
+          </div>
+          <div id="orion-calibration-status"
+            style="display: none; font-size: 0.65rem; color: #60a5fa; text-align: center; font-family: monospace;">
+            Calibrando motor... 📊</div>
+        </div>
+
+        <!-- Radiografía Real y Zona Caliente -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+          <div
+            style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; align-items: center;">
+            <h3
+              style="font-size: 0.65rem; color: var(--color-gold); text-transform: uppercase; margin-bottom: 0.75rem; width: 100%;">
+              🎡 Radiografía Real</h3>
+            <div id="orion-wheel-container"
+              style="width: 100%; aspect-ratio: 1/1; max-width: 260px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+              <!-- El cilindro SVG se inyectará aquí -->
+            </div>
+
+            <!-- Regla de Rotación Horizontal (Copia de la imagen) -->
+            <div style="width: 100%; padding: 0 0.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span
+                  style="font-size: 0.65rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Girar
+                  Cilindro</span>
+                <span id="orion-rotation-value"
+                  style="font-size: 0.75rem; color: var(--color-gold); font-family: monospace; font-weight: bold;">0°</span>
+              </div>
+              <input type="range" id="orion-wheel-rotation" min="0" max="360" value="0"
+                style="width: 100%; cursor: pointer; accent-color: var(--color-gold); margin-bottom: 0.2rem;">
+              <div style="display: flex; justify-content: space-between; width: 100%; padding: 0 2px;">
+                <span style="font-size: 0.5rem; color: var(--text-muted);">0</span>
+                <span style="font-size: 0.5rem; color: var(--text-muted);">45</span>
+                <span style="font-size: 0.5rem; color: var(--text-muted);">90</span>
+                <span style="font-size: 0.5rem; color: var(--text-muted);">135</span>
+                <span style="font-size: 0.5rem; color: var(--text-muted);">180</span>
+                <span style="font-size: 0.5rem; color: var(--text-muted);">225</span>
+                <span style="font-size: 0.5rem; color: var(--text-muted);">270</span>
+                <span style="font-size: 0.5rem; color: var(--text-muted);">315</span>
+                <span style="font-size: 0.5rem; color: var(--text-muted);">360</span>
+              </div>
+            </div>
+          </div>
+          <div
+            style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+            <h3
+              style="font-size: 0.65rem; color: var(--color-gold); text-transform: uppercase; margin-bottom: 0.75rem;">
+              🔥 Zona Física Caliente</h3>
+            <div id="orion-hotzone-info" style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div class="empty-msg" style="font-size: 0.6rem;">Esperando datos...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLERO ESTRATÉGICO (Imagen sugerida por el usuario) -->
+        <div
+          style="background: rgba(15, 23, 42, 0.8); padding: 1rem; border-radius: 10px; border: 1px solid rgba(96, 165, 250, 0.3); margin-bottom: 1.5rem;">
+          <h3
+            style="font-size: 0.7rem; color: #60a5fa; text-transform: uppercase; margin-bottom: 1rem; text-align: center; letter-spacing: 2px;">
+            🛡️ Estrategia de Campos y Sugeridos</h3>
+          <div id="orion-strategy-board" style="display: flex; flex-direction: column; gap: 4px;">
+            <!-- El tablero se generará dinámicamente aquí -->
+            <div class="empty-msg">Sincronizando tablero con el Árbitro...</div>
+          </div>
+
+          <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.75rem;">
+            <h4
+              style="font-size: 0.6rem; color: var(--color-gold); text-transform: uppercase; margin-bottom: 0.5rem; text-align: center;">
+              💎 Números Favoritos</h4>
+            <div id="orion-favorites-container"
+              style="display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;">
+              <!-- Números sugeridos por alta confluencia -->
+            </div>
+          </div>
+        </div>
+
+        <div id="orion-signals-container" style="display: flex; flex-direction: column; gap: 1rem;">
+          <div class="empty-msg">Esperando suficientes datos para triangular señales de alta confluencia...</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- TAB: Series_Tablas (Tablas DA) -->
+    <div id="tab-series-tablas" class="tab-content" style="overflow-y: auto; padding-bottom: 2rem;">
+      <section class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 class="panel-title" style="margin-bottom: 0;">Tablas de Distancia Absoluta (DA)</h2>
+          <div id="da-table-controls" style="display: flex; gap: 0.5rem;">
+            <button id="btn-da-sort" class="btn-outline"
+              style="padding: 0.2rem 0.5rem; font-size: 0.7rem; color: var(--accent-gold); border-color: var(--accent-gold); white-space: nowrap;">
+              <i class="fas fa-history"></i> Invertir Orden (Recientes)
+            </button>
+            <select id="da-concept-select"
+              style="background: #0f172a; color: var(--text-main); border: 1px solid var(--border-color); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
+              <option value="series">Series</option>
+              <option value="externals">Externas (P/I, C, M/M)</option>
+              <option value="groups">Docenas / Columnas</option>
+            </select>
+          </div>
+        </div>
+        <div id="da-tables-container" class="da-tables-wrapper" style="overflow-x: auto; width: 100%;">
+          <p class="empty-msg">No hay datos suficientes para generar las tablas DA.</p>
+        </div>
+      </section>
+    </div>
+    <!-- TAB: 97_sesgo (Análisis de Sesgo Técnico) -->
+    <div id="tab-97-sesgo" class="tab-content" style="overflow-y: auto; padding-bottom: 2rem;">
+      <!-- El contenido se renderiza dinámicamente por sesgo97Renderer.js -->
+      <section class="panel">
+        <div class="empty-msg">Cargando análisis de sesgo 97...</div>
+      </section>
+    </div>
+
+    <!-- TAB: Tester -->
+    <div id="tab-tester" class="tab-content" style="overflow-y: auto; padding-bottom: 2rem;">
+      <section class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <h2 class="panel-title" style="margin-bottom: 0;">🧪 Selección de Serie a Testear</h2>
+          <div style="display: flex; gap: 0.4rem; align-items: center;">
+            <label style="font-size: 0.75rem; color: var(--text-muted);">Muestra:</label>
+            <div class="btn-group-window"
+              style="display: flex; background: #0f172a; padding: 2px; border-radius: 6px; border: 1px solid #1e293b;">
+              <button class="btn-window active" data-window="total"
+                style="padding: 0.2rem 0.6rem; font-size: 0.7rem; border-radius: 4px;">Total</button>
+              <button class="btn-window" data-window="100"
+                style="padding: 0.2rem 0.6rem; font-size: 0.7rem; border-radius: 4px;">100</button>
+              <button class="btn-window" data-window="200"
+                style="padding: 0.2rem 0.6rem; font-size: 0.7rem; border-radius: 4px;">200</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <label style="font-size:0.75rem; color:var(--text-muted);">Elige una serie (desde Ajustes):</label>
+          <div id="tester-series-container"
+            style="display:flex; flex-wrap:wrap; gap:0.5rem; background:#1e293b; border:1px solid #334155; padding:0.5rem; border-radius:4px;">
+            <span style="color:var(--text-muted); font-size:0.85rem;">-- Sin series configuradas --</span>
+          </div>
+          <p style="font-size: 0.65rem; color: var(--text-muted); font-style: italic;">
+            * Solo se muestran las series "Activas" en el Gestor de Series.
+          </p>
+        </div>
+
+        <div
+          style="overflow-x: auto; max-height: 400px; border: 1px solid #334155; border-radius: 4px; margin-top: 1rem;">
+          <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 0.85rem;">
+            <thead style="position: sticky; top: 0; background: #ea580c; color: white; z-index: 1;">
+              <tr id="tester-visual-head">
+                <th style="padding: 0.4rem; border: 1px solid #c2410c;">N°C</th>
+                <th style="padding: 0.4rem; border: 1px solid #c2410c;">Giros</th>
+                <th style="padding: 0.4rem; border: 1px solid #c2410c;">Tester</th>
+                <th style="padding: 0.4rem; border: 1px solid #c2410c;">Status</th>
+                <th style="padding: 0.4rem; border: 1px solid #c2410c;">Histórico</th>
+              </tr>
+            </thead>
+            <tbody id="tester-table-body" style="background: #1e293b; color: var(--text-main);">
+              <tr>
+                <td colspan="5" style="padding: 1rem; color: var(--text-muted);">Selecciona una serie para ver el
+                  testeo.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="panel">
+        <h2 class="panel-title">🧪 Resumen_Resultados</h2>
+
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+          <div
+            style="background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 4px; border-left: 3px solid #10b981; text-align: center;">
+            <div style="font-size: 0.7rem; color: var(--text-muted);">Aciertos</div>
+            <div id="tester-total-wins" style="font-size: 1.1rem; font-weight: bold; color: #10b981;">0</div>
+          </div>
+          <div
+            style="background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 4px; border-left: 3px solid #ef4444; text-align: center;">
+            <div style="font-size: 0.7rem; color: var(--text-muted);">Fallos</div>
+            <div id="tester-total-losses" style="font-size: 1.1rem; font-weight: bold; color: #ef4444;">0</div>
+          </div>
+          <div
+            style="background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 4px; border-left: 3px solid #3b82f6; text-align: center;">
+            <div style="font-size: 0.7rem; color: var(--text-muted);">Apostado</div>
+            <div id="tester-total-bet" style="font-size: 1.1rem; font-weight: bold; color: #60a5fa;">0</div>
+          </div>
+          <div
+            style="background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 4px; border-left: 3px solid #10b981; text-align: center;">
+            <div style="font-size: 0.7rem; color: var(--text-muted);">Ganado</div>
+            <div id="tester-total-won" style="font-size: 1.1rem; font-weight: bold; color: #34d399;">0</div>
+          </div>
+          <div
+            style="background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 4px; border-left: 3px solid #f59e0b; text-align: center;">
+            <div style="font-size: 0.7rem; color: var(--text-muted);">Neto (Fichas)</div>
+            <div id="tester-net-result" style="font-size: 1.1rem; font-weight: bold; color: #fbbf24;">0</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <div id="tester-chart-toggles" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.5rem;"></div>
+          <div id="tester-charts-container"
+            style="display:grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap:1rem;">
+            <!-- Los lienzos de gráficos se inyectarán aquí dinámicamente -->
+          </div>
+        </div>
+        <div style="overflow-x: auto; max-height: 250px; border: 1px solid #334155; border-radius: 4px;">
+          <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 0.75rem;">
+            <thead style="position: sticky; top: 0; background: #334155; color: white; z-index: 1;">
+              <tr>
+                <th style="padding: 0.4rem; border: 1px solid #475569;">Evento #</th>
+                <th style="padding: 0.4rem; border: 1px solid #475569;">Resultado</th>
+                <th style="padding: 0.4rem; border: 1px solid #475569;">Apuestas</th>
+                <th style="padding: 0.4rem; border: 1px solid #475569;">Perdidas</th>
+                <th style="padding: 0.4rem; border: 1px solid #475569;">Ganadas</th>
+                <th style="padding: 0.4rem; border: 1px solid #475569;">Balance</th>
+              </tr>
+            </thead>
+            <tbody id="tester-events-body" style="background: rgba(0,0,0,0.2); color: var(--text-main);">
+              <tr>
+                <td colspan="6" style="padding: 1rem; color: var(--text-muted);">Esperando datos de simulación...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">🧪 Configuración de Simulación</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+              <input type="checkbox" id="tester-cfg-fibonacci" />
+              <span>Activar Fibonacci [1,1,2,3,5...]</span>
+            </label>
+            <div style="display: flex; flex-direction: column;">
+              <label style="font-size: 0.7rem; color: var(--text-muted);">Unidades por Apuesta (Fichas):</label>
+              <input type="number" id="tester-cfg-units" value="1" min="1"
+                style="background: #1e293b; border: 1px solid #334155; color: var(--text-main); padding: 0.3rem; border-radius: 4px; width: 100px;">
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div style="display: flex; flex-direction: column;">
+              <label style="font-size: 0.7rem; color: var(--text-muted);"
+                title="Intentos máximos antes de declarar LOSS">Max Attempts (LOSS):</label>
+              <input type="number" id="tester-cfg-max-attempts" value="5" min="1"
+                style="background: #1e293b; border: 1px solid #334155; color: var(--text-main); padding: 0.3rem; border-radius: 4px; width: 100px;">
+            </div>
+            <div style="display: flex; flex-direction: column;">
+              <label style="font-size: 0.7rem; color: var(--text-muted);"
+                title="Tiros usados para calcular el costo de un Fallo">Spins for Failure Cost:</label>
+              <input type="number" id="tester-cfg-spins-failure" value="5" min="1"
+                style="background: #1e293b; border: 1px solid #334155; color: var(--text-main); padding: 0.3rem; border-radius: 4px; width: 100px;">
+            </div>
+            <div style="display: flex; flex-direction: column;">
+              <label style="font-size: 0.7rem; color: var(--text-muted);"
+                title="Distancia máxima permitida entre dos aciertos para encadenar WIN-WIN">Max Dist. WIN-WIN:</label>
+              <input type="number" id="tester-cfg-winwin-dist" value="6" min="2"
+                style="background: #1e293b; border: 1px solid #334155; color: var(--text-main); padding: 0.3rem; border-radius: 4px; width: 100px;">
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+  
+    <div id="tab-lab-con" class="tab-content" style="overflow-y: auto; padding-bottom: 2rem;">
+      <div id="view-lab"></div>
+    </div></main>
+
+  <!-- Bottom Navigation Bar -->
+  <!-- Navegación movida al header -->
+
+  <!-- Modal editar tirada -->
+  <div id="edit-spin-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7);
+         z-index:999; align-items:center; justify-content:center;">
+    <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:1.25rem;
+                  width:260px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <h3 style="font-size:0.9rem; color:var(--color-gold); margin:0 0 1rem;">Editar Tirada</h3>
+      <p id="edit-spin-label" style="font-size:0.75rem; color:var(--text-muted); margin:0 0 0.75rem;"></p>
+      <select id="edit-spin-select" style="width:100%; background:#0f172a; border:1px solid #475569; color:var(--text-main);
+                 padding:0.5rem; border-radius:4px; font-size:1rem; margin-bottom:1rem;">
+      </select>
+      <div style="display:flex; gap:0.5rem;">
+        <button id="edit-spin-cancel" class="btn-outline" style="flex:1;">Cancelar</button>
+        <button id="edit-spin-save" class="btn-primary" style="flex:1;">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+
+</html>
