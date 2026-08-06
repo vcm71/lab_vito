@@ -2,40 +2,32 @@ import { LabRenderer } from './controlador_de_la_vista_lab.js';
 import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 Chart.register(zoomPlugin);
-import { LogicEngine } from './ORION_logicEngine.js';
 import { renderOrionTab, initOrionEvents } from './orionRenderer.js';
-import { RouletteTracker, RED_NUMBERS, AMERICAN_WHEEL_ORDER } from './rouletteTracker.js';
+import { AMERICAN_WHEEL_ORDER, getColor } from './src/utils/numberMeta.js';
 import { renderDistanceChart, renderSeriesCharts, renderCombinedDAChart, clearCombinedCharts, resetChartZoom } from './seriesRenderer.js';
-import { WinWinEngine } from './3_WinWin_Atrasos_CHI_Estrategias.js';
-import { KellyManager } from './kellyManager.js';
-import { DAEngine } from './daEngine.js';
-import { Sesgo97Logic } from './sesgo97Logic.js';
 import { renderSesgo97Tab } from './sesgo97Renderer.js';
 import { TomadorRenderer } from './tomadorRenderer.js';
 import { tomadorStateStore } from './tomadorStateStore.js';
-import { rouletteSettingsStore } from './rouletteSettingsStore.js';
-import { ChiAnalysisEngine } from './chiLogic.js';
 import { renderChiTab } from './chiRenderer.js';
 import { renderAtrasosTab } from './atrasosRenderer.js';
 import { renderAtaqueTab } from './ataqueRenderer.js';
-document.addEventListener('DOMContentLoaded', () => {
-  const tracker = new RouletteTracker();
+import { renderStWinTab } from './stWinRenderer.js';
+import { OrionKernel } from './src/core/OrionKernel.js';
+import { RouletteAnalytics } from './src/analytics/RouletteAnalytics.js';
+document.addEventListener('DOMContentLoaded', async () => {
+  const kernel = new OrionKernel();
+  await kernel.bootstrap();
+  const domainTracker = kernel.getTracker();
+  if (domainTracker) await domainTracker.initialize();
+  const analytics = new RouletteAnalytics(domainTracker.getSpins(), domainTracker.getSettings());
+  domainTracker.setAnalytics(analytics);
 
-// [Orion Lab] Inicialización segura del Laboratorio Analítico
-const labRenderer = new LabRenderer('view-lab', tracker);
-labRenderer.init();
-
-if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
-    tracker.on('update', () => labRenderer.update());
-} else {
-    console.warn('[Orion Lab] Event bus no encontrado, aplicando fallback por interceptación.');
-}
   let tomador = null;
-  const winWinEngine = new WinWinEngine(tracker);
-  const daEngine = new DAEngine(tracker);
-  const orion = new LogicEngine(tracker, winWinEngine);
-  const sesgo97Engine = new Sesgo97Logic(tracker);
-  const chiEngine = new ChiAnalysisEngine(tracker);
+  const winWinEngine = kernel.engineRegistry.get('winWin');
+  const daEngine = kernel.engineRegistry.get('da');
+  const orion = kernel.engineRegistry.get('orion');
+  const sesgo97Engine = kernel.engineRegistry.get('sesgo97');
+  const chiEngine = kernel.engineRegistry.get('chi');
   
   let currentCHIWindow = 'total';
   const readyState = { tracker: false, winWin: false, kelly: false, tomador: false };
@@ -50,10 +42,8 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     updateUI();
   };
 
-  tracker.ready?.then(() => {
-    readyState.tracker = true;
-    maybeRunInitialBootstrap();
-  });
+  readyState.tracker = true;
+  maybeRunInitialBootstrap();
 
   winWinEngine.ready?.then(() => {
     readyState.winWin = true;
@@ -61,19 +51,41 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   });
 
   // Inicializar eventos de ORION
-  initOrionEvents(tracker, updateUI);
+  initOrionEvents(domainTracker, updateUI);
   
   let daSortEnabled = false;
   let editingSeriesName = null;
   let currentDAWindow = 'total'; // Ventana de muestra por defecto
 
   async function syncSettingsForm() {
-    const { settings } = await rouletteSettingsStore.refresh();
+    const settings = await domainTracker.refreshSettings();
 
     if (inputSeriesAlert) inputSeriesAlert.value = settings.seriesAlert || 10;
-    if (inputAtrasosLimit) inputAtrasosLimit.value = settings.atrasosLimit ?? 5;
-    if (inputAtrasosCritical) inputAtrasosCritical.value = settings.atrasosCritical ?? 9;
+    if (inputLaboratoryEnabled) inputLaboratoryEnabled.checked = settings.laboratory?.enabled === true;
+    // Global maxWindow (applied to all modules)
     if (inputAtrasosMaxWindow) inputAtrasosMaxWindow.value = settings.atrasosMaxWindow ?? 100;
+    if (inputAtRepTopK) inputAtRepTopK.value = settings.atRepTopK ?? 5;
+    // Win-Win distance thresholds (per group)
+    const wwSettings = (settings.moduleThresholds) || {};
+    const inputs = [
+      { id: 'set-module-winwin-even-money',     key: 'winwinEvenMoney' },
+      { id: 'set-module-winwin-dozens-columns', key: 'winwinDozensColumns' },
+      { id: 'set-module-winwin-sectors',        key: 'winwinSectors' },
+    ];
+    inputs.forEach(({ id, key }) => {
+      const el = document.getElementById(id);
+      if (el) {
+        const group = wwSettings[key] || {};
+        el.value = group.distanceMax ?? 5;
+      }
+    });
+    // Per-module thresholds (sync limit + critical only)
+    (settings.moduleThresholds || []).length !== 0 && MODULE_KEYS.forEach(mod => {
+      const t = (settings.moduleThresholds && settings.moduleThresholds[mod]) || {};
+      const el = MODULE_INPUTS[mod];
+      if (el && el.limit) el.limit.value       = t.limit ?? 5;
+      if (el && el.critical) el.critical.value = t.critical ?? 9;
+    });
     if (inputSheetUrl) inputSheetUrl.value = settings.sheetUrl || '';
     if (inputSheetName) inputSheetName.value = settings.sheetName || '';
     if (inputSheetColumn) inputSheetColumn.value = settings.sheetColumn || '';
@@ -129,6 +141,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     if (inputShowClear) inputShowClear.checked = settings.showClear !== false;
     if (inputShowDozenDelays) inputShowDozenDelays.checked = settings.showDozenDelays !== false;
     if (inputShowColumnDelays) inputShowColumnDelays.checked = settings.showColumnDelays !== false;
+    if (inputShowMuestra) inputShowMuestra.checked = settings.showMuestra !== false;
     if (inputShowHighlights) inputShowHighlights.checked = settings.showHighlights !== false;
 
     if (inputColZero) inputColZero.checked = settings.showColZero !== false;
@@ -168,7 +181,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   }
 
   // El sistema ahora respetará tus cambios manuales en la pestaña de ajustes
-  const kelly   = new KellyManager();
+  const kelly   = kernel.engineRegistry.get('kelly');
   kelly.ready?.then(() => {
     readyState.kelly = true;
     try {
@@ -196,13 +209,13 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
       // Fallback síncrono
       if (type === 'RUNS_ALL') {
         renderRunsTest({
-          color:   tracker.runsTest('color'),
-          parity:  tracker.runsTest('parity'),
-          highlow: tracker.runsTest('highlow'),
+          color:   analytics.runsTest('color'),
+          parity:  analytics.runsTest('parity'),
+          highlow: analytics.runsTest('highlow'),
         });
       }
-      if (type === 'WINDOW_STATS') renderWindowStats(tracker.getWindowStats(payload.windowSize));
-      if (type === 'DIST_HIST')    renderDistHist(tracker.getDistanceHistogram());
+      if (type === 'WINDOW_STATS') renderWindowStats(analytics.getWindowStats(payload.windowSize));
+      if (type === 'DIST_HIST')    renderDistHist(analytics.getDistanceHistogram());
     }
   }
 
@@ -237,9 +250,60 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   const labelConfColumns = document.getElementById('set-conf-columns-label');
   
   const inputSeriesAlert = document.getElementById('set-series-alert');
-  const inputAtrasosLimit = document.getElementById('set-atrasos-limit');
-  const inputAtrasosCritical = document.getElementById('set-atrasos-critical');
-  const inputAtrasosMaxWindow = document.getElementById('set-atrasos-max-window');
+  const inputLaboratoryEnabled = document.getElementById('set-laboratory-enabled');
+  const MODULE_KEYS = ['suertesSencillas','docenas','columnas','sixenas','plenos','seriesSectores'];
+  const MODULE_INPUTS = {};
+  MODULE_KEYS.forEach(mod => {
+    MODULE_INPUTS[mod] = {
+      limit:      document.getElementById(`set-module-${mod}-limit`),
+      critical:   document.getElementById(`set-module-${mod}-critical`),
+    };
+  });
+  const inputAtrasosMaxWindow = document.getElementById('set-atrasos-maxWindow');
+  const inputAtRepTopK = document.getElementById('set-module-atrep-topk');
+
+  // ─── Zoom persistence for Ajustes_vito ────────────────────
+  const LS_KEY_ZOOM_AJUSTES = 'orion_ajustes_panel_zoom';
+  function getAjustesZoom() {
+    try {
+      const z = localStorage.getItem(LS_KEY_ZOOM_AJUSTES);
+      if (z) { const val = parseFloat(z); if (val >= 0.5 && val <= 1.5) return val; }
+    } catch (_) {}
+    return 1.0;
+  }
+  function saveAjustesZoom(z) {
+    try { localStorage.setItem(LS_KEY_ZOOM_AJUSTES, z.toString()); } catch (_) {}
+  }
+  // Restore saved zoom on load
+  const savedAjustesZoom = getAjustesZoom();
+  const ajustesZoomContent = document.getElementById('ajustes-zoomable-content');
+  if (ajustesZoomContent) ajustesZoomContent.style.zoom = savedAjustesZoom;
+  const ajustesZoomSlider = document.getElementById('ajustes-zoom-slider');
+  const ajustesZoomValue = document.getElementById('ajustes-zoom-value');
+  if (ajustesZoomSlider) ajustesZoomSlider.value = Math.round(savedAjustesZoom * 100);
+  if (ajustesZoomValue) ajustesZoomValue.textContent = Math.round(savedAjustesZoom * 100) + '%';
+  const INPUT_WINWIN_GROUPS = [
+    { id: 'set-module-winwin-even-money',     key: 'winwinEvenMoney' },
+    { id: 'set-module-winwin-dozens-columns', key: 'winwinDozensColumns' },
+    { id: 'set-module-winwin-sectors',        key: 'winwinSectors' },
+  ];
+
+  // Accordion toggle for Ajustes_vito
+  document.querySelectorAll('#vito-module-accordion [data-toggle]').forEach(header => {
+    header.addEventListener('click', () => {
+      const item = header.closest('.vito-accordion-item');
+      if (!item) return;
+      const body = item.querySelector('.vito-module-body');
+      const isOpen = body.classList.contains('open');
+      if (isOpen) {
+        body.classList.remove('open');
+        header.classList.remove('open');
+      } else {
+        body.classList.add('open');
+        header.classList.add('open');
+      }
+    });
+  });
   const seriesContainer  = document.getElementById('custom-series-list');
   const inputSeriesName  = document.getElementById('new-series-name');
   const inputSeriesNums  = document.getElementById('new-series-nums');
@@ -254,6 +318,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   const inputShowClear = document.getElementById('set-show-clear');
   const inputShowDozenDelays = document.getElementById('set-show-dozen-delays');
   const inputShowColumnDelays = document.getElementById('set-show-column-delays');
+  const inputShowMuestra = document.getElementById('show-muestra');
   const inputShowHighlights = document.getElementById('set-show-highlights');
 
   const inputColZero = document.getElementById('set-col-zero');
@@ -307,10 +372,11 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   const statMeanBlack = document.getElementById('stat-mean-black');
 
   // --- 1. Tab Navigation Logic ---
-  const navBtns = document.querySelectorAll('.nav-btn');
+  const navBtns = document.querySelectorAll('.top-nav .nav-btn[data-target]');
   const tabContents = document.querySelectorAll('.tab-content');
 
   const activateTab = (targetId, { persist = false } = {}) => {
+    if (!targetId) return;
     navBtns.forEach(b => b.classList.toggle('active', b.dataset.target === targetId));
     tabContents.forEach(tc => tc.classList.toggle('active', tc.id === targetId));
 
@@ -323,6 +389,18 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     }
     if (targetId === 'tab-lab-con') {
       labRenderer.update();
+    }
+    if (targetId === 'tab-lab-con1') {
+      const r = kernel.container.resolve('labCon1Renderer');
+      if (r) r.update();
+    }
+    if (targetId === 'tab-conjuntos') {
+      const r = kernel.container.resolve('conjuntosRenderer');
+      if (r) r.update();
+    }
+    if (targetId === 'tab-at-rep') {
+      const r = kernel.container.resolve('atRepRenderer');
+      if (r) r.update();
     }
     if (targetId === 'tab-series-tablas') {
       renderDATables();
@@ -406,7 +484,8 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   function updateQuickToggleStates() {
     quickToggles.forEach(btn => {
       const settingKey = btn.dataset.setting;
-      const isActive = tracker.settings[settingKey] !== false; 
+      const settings = domainTracker.getSettings();
+      const isActive = settings[settingKey] !== false; 
       btn.classList.toggle('active', isActive);
       
       // Sincronizar hacia los checkboxes de Ajustes
@@ -420,8 +499,9 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   quickToggles.forEach(btn => {
     btn.addEventListener('click', () => {
       const settingKey = btn.dataset.setting;
-      const nextValue = !(tracker.settings[settingKey] !== false);
-      tracker.updateSettings({ [settingKey]: nextValue });
+      const settings = domainTracker.getSettings();
+      const nextValue = !(settings[settingKey] !== false);
+      domainTracker.updateSettings({ [settingKey]: nextValue });
       updateQuickToggleStates();
       updateUI();
     });
@@ -432,7 +512,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     const checkbox = document.getElementById(checkboxId);
     if (checkbox) {
       checkbox.addEventListener('change', () => {
-        tracker.updateSettings({ [settingKey]: checkbox.checked });
+        domainTracker.updateSettings({ [settingKey]: checkbox.checked });
         updateQuickToggleStates();
         updateUI();
       });
@@ -451,7 +531,8 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
 
   const setupSlider = (input, label, key) => {
     if (!input) return;
-    input.value = tracker.settings[key] || 95;
+    const settings = domainTracker.getSettings();
+    input.value = settings[key] || 95;
     if (label) label.textContent = `${input.value}${input.id.includes('threshold') ? '' : '%'}`;
     input.addEventListener('input', () => {
       if (label) label.textContent = `${input.value}${input.id.includes('threshold') ? '' : '%'}`;
@@ -528,18 +609,17 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     };
   }
 
-  settingsForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await tracker.updateSettings({
-      colorAlert: parseInt(inputColor.value, 10),
+  if (settingsForm) {
+    settingsForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await domainTracker.updateSettings({
+        colorAlert: parseInt(inputColor.value, 10),
       parityAlert: parseInt(inputParity.value, 10),
       highLowAlert: inputHighLow ? parseInt(inputHighLow.value, 10) : 5,
       seriesAlert: inputSeriesAlert ? parseInt(inputSeriesAlert.value, 10) : 10,
       seisenaAlert: inputSeisenaAlert ? parseInt(inputSeisenaAlert.value, 10) : 7,
       seisenaCritical: inputSeisenaCritical ? parseInt(inputSeisenaCritical.value, 10) : 10,
-      atrasosLimit: inputAtrasosLimit ? parseInt(inputAtrasosLimit.value, 10) : 5,
-      atrasosCritical: inputAtrasosCritical ? parseInt(inputAtrasosCritical.value, 10) : 9,
-      atrasosMaxWindow: inputAtrasosMaxWindow ? parseInt(inputAtrasosMaxWindow.value, 10) : 100,
+      // Per-module thresholds are saved via the Ajustes_vito button
       ataqueOrange: inputAtaqueOrange ? parseInt(inputAtaqueOrange.value, 10) : -2,
       ataqueRed: inputAtaqueRed ? parseInt(inputAtaqueRed.value, 10) : 0,
       dozenAlert: parseInt(inputDozen.value, 10),
@@ -566,6 +646,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
       showClear: inputShowClear ? inputShowClear.checked : true,
       showDozenDelays: inputShowDozenDelays ? inputShowDozenDelays.checked : true,
       showColumnDelays: inputShowColumnDelays ? inputShowColumnDelays.checked : true,
+      showMuestra: inputShowMuestra ? inputShowMuestra.checked : true,
       showHighlights: inputShowHighlights ? inputShowHighlights.checked : true,
       showColZero: inputColZero ? inputColZero.checked : true,
       showColColor: inputColColor ? inputColColor.checked : true,
@@ -573,6 +654,9 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
       showColRange: inputColRange ? inputColRange.checked : true,
       showColDozens: inputColDozens ? inputColDozens.checked : true,
       showColColumns: inputColColumns ? inputColColumns.checked : true,
+      laboratory: {
+        enabled: inputLaboratoryEnabled ? inputLaboratoryEnabled.checked : false,
+      },
       sesgo97SectorSize: input97SectorSize ? parseInt(input97SectorSize.value, 10) : 5,
       sesgo97TopSectorSize: input97TopSectorSize ? parseInt(input97TopSectorSize.value, 10) : 5,
       sesgo97TopRanking: input97TopRanking ? parseInt(input97TopRanking.value, 10) : 10,
@@ -594,25 +678,95 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
 
     syncSettingsForm();
     updateUI();
-  });
+  });  // end submit handler
+  }  // end if (settingsForm)
+
+  // ─── Botón Guardar de AJUSTES_VITO (módulo Atrasos independiente) ────────────
+  const btnSaveAjustesVito = document.getElementById('btn-save-ajustes-vito');
+  if (btnSaveAjustesVito) {
+    btnSaveAjustesVito.addEventListener('click', async () => {
+      const moduleThresholds = {};
+      MODULE_KEYS.forEach(mod => {
+        const el = MODULE_INPUTS[mod];
+        moduleThresholds[mod] = {
+          limit:     el && el.limit     ? parseInt(el.limit.value, 10)     : 5,
+          critical:  el && el.critical  ? parseInt(el.critical.value, 10) : 9,
+        };
+      });
+
+      const atrasosMaxWindow = inputAtrasosMaxWindow ? parseInt(inputAtrasosMaxWindow.value, 10) : 100;
+      const atRepTopK = inputAtRepTopK ? parseInt(inputAtRepTopK.value, 10) : 5;
+      INPUT_WINWIN_GROUPS.forEach(({ id, key }) => {
+        const el = document.getElementById(id);
+        moduleThresholds[key] = {
+          distanceMax: el ? parseInt(el.value, 10) : 5,
+        };
+      });
+
+      await domainTracker.updateSettings({
+        moduleThresholds,
+        atrasosMaxWindow,
+        atRepTopK,
+        showMuestra: inputShowMuestra ? inputShowMuestra.checked : true,
+        laboratory: {
+          enabled: inputLaboratoryEnabled ? inputLaboratoryEnabled.checked : false,
+        },
+        sesgo97SectorSize: input97SectorSize ? parseInt(input97SectorSize.value, 10) : 5,
+        sesgo97TopSectorSize: input97TopSectorSize ? parseInt(input97TopSectorSize.value, 10) : 5,
+        sesgo97TopRanking: input97TopRanking ? parseInt(input97TopRanking.value, 10) : 10,
+        sesgo97StartRow: input97StartRow ? parseInt(input97StartRow.value, 10) : 1,
+        sesgo97EndRow: input97EndRow ? parseInt(input97EndRow.value, 10) : 0,
+      });
+
+      updateUI();
+
+      // Feedback visual
+      const feedback = document.getElementById('vito-save-feedback');
+      btnSaveAjustesVito.textContent = '¡Guardado! ✅';
+      btnSaveAjustesVito.style.background = '#16a34a';
+      if (feedback) feedback.style.display = 'block';
+      setTimeout(() => {
+        btnSaveAjustesVito.textContent = '💾 GUARDAR AJUSTES';
+        btnSaveAjustesVito.style.background = '#22c55e';
+        if (feedback) feedback.style.display = 'none';
+      }, 2500);
+    });
+  }
+
+  // ─── Zoom slider for Ajustes_vito ─────────────────────────
+  const ajustesSlider = document.getElementById('ajustes-zoom-slider');
+  const ajustesValue = document.getElementById('ajustes-zoom-value');
+  const ajustesContent = document.getElementById('ajustes-zoomable-content');
+  if (ajustesSlider && ajustesValue && ajustesContent) {
+    ajustesSlider.addEventListener('input', (e) => {
+      const zoomPct = e.target.value;
+      ajustesValue.textContent = zoomPct + '%';
+      const zoomFloat = parseInt(zoomPct) / 100;
+      ajustesContent.style.zoom = zoomFloat;
+      saveAjustesZoom(zoomFloat);
+    });
+  }
+
+  // Cambio inmediato del toggle Muestra (sin esperar Guardar)
+  if (inputShowMuestra) {
+    inputShowMuestra.addEventListener('change', () => {
+      domainTracker.updateSettings({ showMuestra: inputShowMuestra.checked });
+      updateUI();
+    });
+  }
 
   const btnRealRadiography = document.getElementById('btn-real-radiography');
   const btnRescan = document.getElementById('btn-rescan-history');
 
   if (btnRealRadiography) {
     btnRealRadiography.addEventListener('click', () => {
-      // Obtenemos las tiradas directamente de la memoria del tracker
-      const spins = tracker.spins || [];
+      const spins = domainTracker.getSpins() || [];
       
       if (spins.length < 5) {
         alert("Necesitas al menos 5 tiradas reales para generar una radiografía.");
         return;
       }
-      const hitMap = {};
-      spins.forEach(s => {
-        const n = (s && typeof s === 'object') ? s.number : s;
-        if (n !== undefined) hitMap[n] = (hitMap[n] || 0) + 1;
-      });
+      const hitMap = domainTracker.getHitMap();
 
       renderHeatMap(hitMap, 'real-radiography-container');
       
@@ -624,7 +778,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   if (btnRescan) {
     btnRescan.addEventListener('click', () => {
       if (confirm('¿Deseas analizar TODO el historial para reconstruir los récords máximos? Esto sobrescribirá tus récords actuales.')) {
-        winWinEngine.rescanFullHistory(tracker.spins, tracker.settings.customSeries || []);
+        winWinEngine.rescanFullHistory(domainTracker.getSpins(), domainTracker.getSettings().customSeries || []);
         
         const originalText = btnRescan.textContent;
         btnRescan.textContent = '¡Récords Actualizados!';
@@ -645,17 +799,17 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   // --- Gestor de Series ---
   function renderSeries() {
     if (!seriesContainer) return;
-    const seriesList = [...(tracker.settings.customSeries || [])];
+    const seriesList = [...domainTracker.getSeries()];
     const countLabel = document.getElementById('series-count-label');
     const tabCountLabel = document.getElementById('series-tab-count-label');
-    const spins = tracker.getSpins();
+    const spins = domainTracker.getSpins();
     const activeSeries = seriesList.filter(s => s.active !== false && s.numbers && s.numbers.length > 0);
     const atrasoStats = winWinEngine.analyzeSeriesAtrasadas(
       spins,
       activeSeries,
-      tracker.settings.rangeAtr || 500,
-      tracker.settings.seriesAlert || 10,
-      tracker.settings.weaknessDistCount || 3
+      domainTracker.getSettings().rangeAtr || 500,
+      domainTracker.getSettings().seriesAlert || 10,
+      domainTracker.getSettings().weaknessDistCount || 3
     );
     const atrasoMap = new Map(atrasoStats.map(item => [item.label, item]));
     
@@ -706,14 +860,9 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     seriesContainer.querySelectorAll('.btn-toggle-series').forEach(btn => {
       btn.addEventListener('click', () => {
         const name = seriesList[btn.dataset.idx].name;
-        const list = [...tracker.settings.customSeries];
-        const item = list.find(s => s.name === name);
-        if (item) {
-          item.active = !item.active;
-          tracker.updateSettings({ customSeries: list });
-          renderSeries();
-          updateUI();
-        }
+        domainTracker.toggleSeries(name);
+        renderSeries();
+        updateUI();
       });
     });
 
@@ -733,9 +882,8 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     seriesContainer.querySelectorAll('.btn-delete-series').forEach(btn => {
       btn.addEventListener('click', () => {
         if (confirm('¿Eliminar esta serie?')) {
-          const s = seriesList[btn.dataset.idx];
-          const list = tracker.settings.customSeries.filter(item => item.name !== s.name);
-          tracker.updateSettings({ customSeries: list });
+          const name = seriesList[btn.dataset.idx].name;
+          domainTracker.deleteSeries(name);
           renderSeries();
           updateUI();
         }
@@ -820,7 +968,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
       return;
     }
 
-    const selectedSeriesDefs = (tracker.settings.customSeries || []).filter(s => window.testerSelectedSeries.has(s.name));
+    const selectedSeriesDefs = (domainTracker.getSettings().customSeries || []).filter(s => window.testerSelectedSeries.has(s.name));
     
     let theadHtml = `
       <th style="padding: 0.4rem; border: 1px solid #c2410c;">N°C</th>
@@ -842,7 +990,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     // Parámetros derivados
     const payout = 35; 
 
-    let spins = tracker.getSpins();
+    let spins = domainTracker.getSpins();
     if (typeof currentDAWindow !== 'undefined' && currentDAWindow !== 'total') {
       const limit = parseInt(currentDAWindow);
       spins = spins.slice(-limit);
@@ -1225,28 +1373,13 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
       if (!name || !val) return;
 
       const nums = val.split(/[\s,.-]+/).map(n => n.trim()).filter(n => n !== '');
-      const currentList = [...(tracker.settings.customSeries || [])];
-      
-      let targetIdx = -1;
-      if (editingSeriesName) {
-        targetIdx = currentList.findIndex(s => s.name.toLowerCase() === editingSeriesName.toLowerCase());
-        const collisionIdx = currentList.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
-        if (collisionIdx > -1 && collisionIdx !== targetIdx) {
-          alert('Ya existe otra serie con ese nombre.');
-          return;
-        }
-      } else {
-        targetIdx = currentList.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+      const result = domainTracker.addOrUpdateSeries(name, nums, editingSeriesName);
+
+      if (result.collisionName) {
+        alert('Ya existe otra serie con ese nombre.');
+        return;
       }
 
-      if (targetIdx > -1) {
-        currentList[targetIdx].numbers = nums;
-        currentList[targetIdx].name = name; 
-      } else {
-        currentList.push({ name: name, numbers: nums, active: true });
-      }
-      
-      tracker.updateSettings({ customSeries: currentList });
       inputSeriesName.value = '';
       inputSeriesNums.value = '';
       editingSeriesName = null;
@@ -1366,7 +1499,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   }
 
   // Inicializar el Tomador (Desacoplado - Paso Final de UI)
-  tomador = new TomadorRenderer(tracker, {
+  tomador = new TomadorRenderer(domainTracker, {
     onSpinAdded: (numStr) => {
       addSpin(numStr);
       if (orion && typeof orion.recordResult === 'function') {
@@ -1380,9 +1513,12 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   });
   maybeRunInitialBootstrap();
 
-  const clearSessionAction = () => {
-    if(confirm('¿Estás seguro de que quieres borrar el historial actual y empezar una nueva sesión?')) {
-      tracker.clearSession();
+  const clearSessionAction = async () => {
+    if (confirm('¿Estás seguro de que quieres borrar el historial actual y empezar una nueva sesión?')) {
+      const result = await domainTracker.recordAndClearSession();
+      await domainTracker.saveSpins();
+      domainTracker.invalidateDelays();
+      btnClearSession.disabled = true;
       updateUI();
     }
   };
@@ -1394,11 +1530,19 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
 
   // --- 3. Actualizar Interfaz ---
   function updateUI() {
-    const spins = tracker.getSpins();
-    const stats = tracker.getStats();
+    const spins = domainTracker.getSpins();
+    const stats = analytics.getStats();
 
     // 1. ESTADÍSTICAS BÁSICAS (Siempre funcionan)
     if (statTotal) statTotal.textContent = stats.total;
+    // Actualizar contadores Muestra en las 3 pestañas
+    document.querySelectorAll('.muestra-count').forEach(el => el.textContent = stats.total);
+    // Mostrar/ocultar recuadros Muestra según ajustes
+    const muestraVisible = domainTracker.getSettings().showMuestra !== false;
+    document.querySelectorAll('.muestra-count').forEach(el => {
+      const box = el.closest('[style*="sticky"]');
+      if (box) box.style.display = muestraVisible ? '' : 'none';
+    });
     if (statRed) statRed.textContent = `${stats.colorsPct.red}%`;
     if (statBlack) statBlack.textContent = `${stats.colorsPct.black}%`;
     if (statGreen) statGreen.textContent = `${stats.colorsPct.green}%`;
@@ -1416,14 +1560,15 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     if (tomador) tomador.update();
 
     // 2. RENDERIZADO DE MÓDULOS ORIGINALES (Aislados)
-    try { renderWheel(tracker); } catch(e) {}
-    try { renderProbabilities(tracker.getProbabilities()); } catch(e) {}
-    try { renderConfidenceIntervals(tracker.getConfidenceIntervals()); } catch(e) {}
-    try { renderAlerts(tracker.getAlerts()); } catch(e) {}
-    try { renderWinWinTab(tracker, winWinEngine); } catch(e) {}
-    try { renderStrategy(tracker.getStrategy()); } catch(e) {}
-    try { renderAtrasosTab(tracker); } catch(e) {}
-    try { renderAtaqueTab(tracker); } catch(e) {}
+    try { renderWheel(); } catch(e) {}
+    try { renderProbabilities(analytics.getProbabilities()); } catch(e) {}
+    try { renderConfidenceIntervals(analytics.getConfidenceIntervals()); } catch(e) {}
+    try { renderAlerts(analytics.getAlerts()); } catch(e) {}
+    try { renderWinWinTab(domainTracker, winWinEngine); } catch(e) {}
+    try { renderStrategy(analytics.getStrategy()); } catch(e) {}
+    try { renderAtrasosTab(domainTracker); } catch(e) {}
+    try { renderStWinTab(domainTracker); } catch(e) {}
+    try { renderAtaqueTab(domainTracker); } catch(e) {}
     
     // 3. GRÁFICOS DE SERIES (Aislado)
     try {
@@ -1437,7 +1582,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
           if (concept === 'jumps') {
             seriesDistHistSection.style.display = 'flex';
             try {
-              const histData = tracker.getDistanceHistogram();
+              const histData = analytics.getDistanceHistogram();
               renderDistHist(histData);
             } catch (err) {}
           } else {
@@ -1482,7 +1627,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
 
     // 4. ANALISIS AVANZADO (Aislado)
     try {
-      const advStats = tracker.getAdvancedStats();
+      const advStats = analytics.getAdvancedStats();
       if (statHotzoneCenter) {
         statHotzoneCenter.textContent = advStats.hotZone.center;
         statHotzoneMembers.textContent = advStats.hotZone.members.length > 0 ? `[ ${advStats.hotZone.members.join(' • ')} ]` : '-';
@@ -1499,16 +1644,16 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     // 5. KELLY (Funciona con datos base, el ORION es opcional)
     try {
       const orionSignals = (orion && typeof orion.getBestOpportunities === 'function') ? orion.getBestOpportunities() : [];
-      renderKelly(kelly.analyze(tracker, orionSignals));
+      renderKelly(kelly.analyze(domainTracker, orionSignals));
     } catch (e) {
       // Fallback si ORION falla: Kelly analiza solo con datos base
-      renderKelly(kelly.analyze(tracker, []));
+      renderKelly(kelly.analyze(domainTracker, []));
     }
 
     // 6. EL ORION (ÚLTIMO Y TOTALMENTE AISLADO)
     try {
       if (typeof renderOrionTab === 'function') {
-        renderOrionTab(tracker, orion);
+        renderOrionTab(domainTracker, orion);
       }
     } catch (err) {
       console.warn("Módulo ORION en modo espera/error:", err.message);
@@ -1518,7 +1663,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     try {
       const display97Total = document.getElementById('display-97-total-sample');
       if (display97Total) {
-        display97Total.textContent = tracker.getSpins().length;
+        display97Total.textContent = domainTracker.getSpins().length;
       }
 
       const tab97 = document.getElementById('tab-97-sesgo');
@@ -1550,7 +1695,10 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     if (!number && number !== 0) return;
     
     // 1. Registro instantáneo en memoria
-    tracker.addSpin(number);
+    domainTracker.addSpin(number);
+    domainTracker.saveSpins();
+    analytics.refresh(domainTracker.getSpins(), domainTracker.getSettings());
+    domainTracker.invalidateDelays();
     
     // 2. Cálculo diferido (para no trabar el teclado)
     if (uiRefreshTimeout) clearTimeout(uiRefreshTimeout);
@@ -1559,10 +1707,29 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     }, 50); 
   }
 
-  function renderWheel(tracker) {
+  function importNumbers(numbersArray) {
+    const report = { total: numbersArray.length, valid: 0, discarded: 0, details: [] };
+    const discardedSet = new Set();
+    numbersArray.forEach(val => {
+      const spin = domainTracker.addSpin(val);
+      if (spin) {
+        report.valid++;
+      } else {
+        report.discarded++;
+        discardedSet.add(val);
+      }
+    });
+    report.details = Array.from(discardedSet).slice(0, 10);
+    domainTracker.saveSpins();
+    analytics.refresh(domainTracker.getSpins(), domainTracker.getSettings());
+    domainTracker.invalidateDelays();
+    return report;
+  }
+
+  function renderWheel() {
     if (!wheelContainer) return;
     
-    const spins = tracker.getSpins();
+    const spins = domainTracker.getSpins();
     const numCounts = {};
     AMERICAN_WHEEL_ORDER.forEach(n => numCounts[n] = 0);
     spins.forEach(s => {
@@ -1615,7 +1782,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
       const startAngle = (i * sliceAngle) - offsetAngle + 180;
       const endAngle = ((i + 1) * sliceAngle) - offsetAngle + 180;
       
-      const c = RouletteTracker.getColor(num);
+      const c = getColor(num);
       let baseColor = '#1e293b'; // Slate 800 for Black to make contrast better
       if (c === 'red') baseColor = '#dc2626'; 
       else if (c === 'green') baseColor = '#16a34a';
@@ -1941,7 +2108,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     windowSlider.addEventListener('input', () => {
       currentWindowSize = parseInt(windowSlider.value, 10);
       windowLabel.textContent = currentWindowSize;
-      workerRequest('WINDOW_STATS', { spins: tracker.getSpins(), windowSize: currentWindowSize });
+      workerRequest('WINDOW_STATS', { spins: domainTracker.getSpins(), windowSize: currentWindowSize });
     });
   }
 
@@ -2169,7 +2336,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
       kelly.minConfidence  = (parseInt(kellyMinConfInput.value)    || 30) / 100;
       kelly.save();
       const signals = (orion && typeof orion.getBestOpportunities === 'function') ? orion.getBestOpportunities() : [];
-      renderKelly(kelly.analyze(tracker, signals));
+      renderKelly(kelly.analyze(domainTracker, signals));
     });
   }
 
@@ -2282,7 +2449,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
         // Parsear números: busca 0, 00, o números del 1 al 36 sueltos en el texto
         const matches = content.match(/\b(00|[0-9]{1,2})\b/g) || [];
         if (matches.length > 0) {
-          const report = tracker.importSpins(matches);
+          const report = importNumbers(matches);
           let msg = `✅ Importación completada:\n- Total encontrados: ${report.total}\n- Válidos cargados: ${report.valid}\n- Descartados: ${report.discarded}`;
           if (report.discarded > 0) {
             msg += `\n\nEjemplos de descartados:\n${report.details.join('\n')}`;
@@ -2301,8 +2468,8 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
   const sheetsImportTriggers = document.querySelectorAll('.btn-import-sheets-trigger');
   sheetsImportTriggers.forEach(btn => {
     btn.addEventListener('click', async () => {
-      const url = tracker.settings.sheetUrl;
-      const sheetName = tracker.settings.sheetName;
+      const url = domainTracker.getSettings().sheetUrl;
+      const sheetName = domainTracker.getSettings().sheetName;
 
       if (!url) {
         alert("Primero debes configurar la 'URL de la Planilla' en la pestaña Ajustes.");
@@ -2317,7 +2484,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
       }
 
       const sheetId = match[1];
-      const sheetColumn = tracker.settings.sheetColumn;
+      const sheetColumn = domainTracker.getSettings().sheetColumn;
       let fetchUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
       
       let queryParams = [];
@@ -2339,7 +2506,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
         const matches = text.match(/\b(00|[0-9]{1,2})\b/g) || [];
         
         if (matches.length > 0) {
-          const report = tracker.importSpins(matches);
+          const report = importNumbers(matches);
           let msg = `☁️ Importación desde Sheets completada:\n- Total descargados: ${report.total}\n- Válidos cargados: ${report.valid}\n- Descartados: ${report.discarded}`;
           if (report.discarded > 0) {
             msg += `\n\nEjemplos de descartados:\n${report.details.join('\n')}`;
@@ -2358,8 +2525,8 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
     });
   });
 
-  function renderWinWinTab(tracker, engine) {
-    const spins = tracker.spins;
+  function renderWinWinTab(spinSource, engine) {
+    const spins = domainTracker.getSpins();
     const tableBody = document.getElementById('prototipo-table-body');
     if (!tableBody) return;
     if (spins.length === 0) {
@@ -2367,7 +2534,7 @@ if (typeof tracker !== 'undefined' && typeof tracker.on === 'function') {
       return;
     }
 
-    const settings = tracker.settings;
+    const settings = domainTracker.getSettings();
     const rows = [];
 
     // --- 1. Apuestas Externas ---
