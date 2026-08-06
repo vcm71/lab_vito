@@ -1,0 +1,95 @@
+{
+  "benchmarkId": "benchmark_2026-07-30T17-52-27",
+  "timestamp": "2026-07-30T17:52:27.283Z",
+  "baseline": {
+    "tests": 634,
+    "passed": 634,
+    "failed": 0,
+    "lint": 0,
+    "build": "OK"
+  },
+  "features": {
+    "hash": {
+      "migrated": true,
+      "from": "djb2 (non-cryptographic)",
+      "to": "SHA-256 (crypto.createHash)",
+      "module": "src/calibration/CalibrationModel.js"
+    },
+    "canonical_serialization": {
+      "implemented": true,
+      "module": "src/calibration/CanonicalHash.js",
+      "features": ["sorted_keys", "deterministic_serialization", "NaN→null", "Infinity→null"]
+    },
+    "grouped_temporal_split": {
+      "implemented": true,
+      "module": "src/calibration/GroupedTemporalSplit.js",
+      "features": ["group-aware_train/val/test", "temporal_ordering", "group_field_configurable"]
+    },
+    "paired_bootstrap": {
+      "implemented": true,
+      "module": "src/calibration/PairedBootstrap.js",
+      "features": ["paired_resampling", "confidence_intervals", "win_rate", "two-sided_verdict"]
+    },
+    "leakage_detector": {
+      "group_aware": true,
+      "module": "src/calibration/CalibrationLeakageDetector.js",
+      "features": ["checkByGroups", "record-level_intersection", "temporal_proximity_filter"]
+    }
+  },
+  "audit": {
+    "BetaCalibration": {
+      "status": "PASS",
+      "notes": [
+        "lgamma defined locally (Stirling approx, lines 107-117) — correct",
+        "Method of moments with alpha/beta clamped to 0.5",
+        "Beta PDF uses lgamma for Beta function — correct approach",
+        "Edge case: pow(x, a-1) can underflow for extreme alpha/beta"
+      ]
+    },
+    "PlattScaling": {
+      "status": "PASS",
+      "notes": [
+        "Logistic regression with fixed lr=0.1, 1000 epochs",
+        "No early stopping — converges on most datasets but may be slow",
+        "No regularization — potential overfitting on small datasets",
+        "Math correct: sigmoid(w*score + b) → gradient descent on log loss"
+      ]
+    }
+  },
+  "evidence": {
+    "status": "INSUFFICIENT_EVIDENCE",
+    "reason": "No real historical dataset exists — benchmark results are from synthetic data only.",
+    "recommendation": "Collect real rawConsensusScore/observedOutcome pairs from production sessions before using these strategies for model selection.",
+    "dataset_status": "No data/ directory, no serialized datasets, no session logs with calibration targets.",
+    "synthetic_fallback": "SyntheticCalibrationDatasetFactory generates reproducible synthetic data for pipeline validation — NOT a substitute for real data."
+  },
+  "verdict": {
+    "pipeline": "GREEN",
+    "production_readiness": "NOT_READY — INSUFFICIENT_EVIDENCE",
+    "summary": "P2.2 calibration pipeline is fully operational and tested (634 tests, 0 lint, build OK). All 12 tasks completed. SHA-256 migration, canonical serialization, group-aware split, paired bootstrap, and leakage detection are integrated. However, the absence of real historical data means NO strategy can be promoted to production. The pipeline is ready to ingest real data when available."
+  },
+  "new_modules": [
+    "src/calibration/CanonicalHash.js",
+    "src/calibration/GroupedTemporalSplit.js",
+    "src/calibration/PairedBootstrap.js"
+  ],
+  "modified_modules": [
+    "src/calibration/CalibrationModel.js (djb2 → SHA-256)",
+    "src/calibration/CalibrationLeakageDetector.js (group-aware methods)",
+    "src/calibration/SyntheticCalibrationDatasetFactory.js (group fields)",
+    "src/calibration/index.js (barrel exports)"
+  ],
+  "new_tests": [
+    "tests/calibration/CanonicalHash.test.js (7 tests)",
+    "tests/calibration/GroupedTemporalSplit.test.js (4 tests)",
+    "tests/calibration/PairedBootstrap.test.js (5 tests)",
+    "tests/calibration/LeakageDetectorGroup.test.js (5 tests)",
+    "tests/calibration/CalibrationModelHash.test.js (6 tests)",
+    "tests/calibration/P2_2_Benchmark.test.js (8 tests)"
+  ],
+  "test_counts": {
+    "before": 598,
+    "after": 634,
+    "added": 36
+  }
+}

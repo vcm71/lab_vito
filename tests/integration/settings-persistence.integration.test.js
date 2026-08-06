@@ -36,14 +36,16 @@ describe('Integration: Settings Persistence', () => {
     expect(settings.customSeries).toBeInstanceOf(Array);
     expect(settings.customSeries.length).toBeGreaterThan(0);
     expect(settings.moduleThresholds).toBeDefined();
+    expect(settings.laboratory).toEqual({ enabled: false });
   });
 
   it('should update partial settings and sync state', async () => {
-    await settingsManager.update({ casinoName: 'Monte Carlo', crupierName: 'James' });
+    await settingsManager.update({ casinoName: 'Monte Carlo', crupierName: 'James', laboratory: { enabled: true } });
 
     const current = settingsManager.get();
     expect(current.casinoName).toBe('Monte Carlo');
     expect(current.crupierName).toBe('James');
+    expect(current.laboratory).toEqual({ enabled: true });
 
     // Unchanged fields preserved
     expect(current.tableName).toBe('');
@@ -71,6 +73,7 @@ describe('Integration: Settings Persistence', () => {
     expect(settingsManager.get().casinoName).toBe(defaults.casinoName);
     expect(settingsManager.get().visualMode).toBe(defaults.visualMode);
     expect(settingsManager.get().customSeries).toEqual(defaults.customSeries);
+    expect(settingsManager.get().laboratory).toEqual(defaults.laboratory);
   });
 
   it('should merge settings (shallow top-level merge)', async () => {

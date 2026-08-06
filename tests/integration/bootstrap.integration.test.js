@@ -8,6 +8,8 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const labRendererUpdate = vi.fn();
+
 // ─── Mocks para dependencias externas ──────────────────────────────
 vi.mock('../../rouletteSettingsStore.js', () => ({
   rouletteSettingsStore: {
@@ -23,6 +25,7 @@ vi.mock('../../rouletteSettingsStore.js', () => ({
     visualMode: 'analisis',
     customSeries: [],
     moduleThresholds: {},
+    laboratory: { enabled: false },
   })),
 }));
 
@@ -37,7 +40,25 @@ vi.mock('../../controlador_de_la_vista_lab.js', () => ({
   LabRenderer: function LabRendererMock() {
     return {
       init: () => {},
-      update: () => {},
+      update: labRendererUpdate,
+    };
+  },
+}));
+
+vi.mock('../../labCon1Renderer.js', () => ({
+  LabCon1Renderer: function LabCon1RendererMock() {
+    return {
+      init: () => {},
+      update: labRendererUpdate,
+    };
+  },
+}));
+
+vi.mock('../../conjuntosRenderer.js', () => ({
+  ConjuntosRenderer: function ConjuntosRendererMock() {
+    return {
+      init: () => {},
+      update: labRendererUpdate,
     };
   },
 }));
@@ -83,11 +104,14 @@ import { SpinManager } from '../../src/tracker/SpinManager.js';
 
 describe('Integration: Bootstrap Initialization', () => {
   let container;
+  let eventBus;
 
   beforeEach(() => {
     vi.clearAllMocks();
     container = new ServiceContainer();
-    container.register('eventBus', new EventBus());
+    eventBus = new EventBus();
+    vi.spyOn(eventBus, 'on');
+    container.register('eventBus', eventBus);
   });
 
   it('should create domainTracker with all managers wired', async () => {
@@ -99,6 +123,9 @@ describe('Integration: Bootstrap Initialization', () => {
     expect(result.domainTracker.sessionManager).toBeInstanceOf(SessionManager);
     expect(result.domainTracker.historyManager).toBeInstanceOf(HistoryManager);
     expect(result.domainTracker.settingsManager).toBeInstanceOf(SettingsManager);
+    expect(result.domainTracker.getEventBus()).toBe(eventBus);
+    expect(eventBus.on).toHaveBeenCalledTimes(4);
+    expect(eventBus.on.mock.calls.map(([eventName]) => eventName)).toEqual(['update', 'update', 'update', 'update']);
   });
 
   it('should wire DelayManager to the domainTracker', async () => {
@@ -137,6 +164,20 @@ describe('Integration: Bootstrap Initialization', () => {
     expect(container.resolve('settingsStore')).toBeDefined();
     expect(container.resolve('tomadorStateStore')).toBeDefined();
     expect(container.resolve('labRenderer')).toBeDefined();
+    expect(container.resolve('laboratoryBinding')).toBeDefined();
+    expect(container.resolve('laboratoryOrchestrator')).toBeDefined();
+  });
+
+  it('should only auto-refresh Laboratory when enabled in settings', async () => {
+    const result = await Bootstrap.init(container);
+
+    const labUpdateHandler = eventBus.on.mock.calls[0][1];
+    labUpdateHandler();
+    expect(labRendererUpdate).not.toHaveBeenCalled();
+
+    await result.domainTracker.updateSettings({ laboratory: { enabled: true } });
+    labUpdateHandler();
+    expect(labRendererUpdate).toHaveBeenCalledTimes(1);
   });
 
   it('should return both tracker and domainTracker as same instance', async () => {

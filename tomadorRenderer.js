@@ -3,7 +3,8 @@
  * Encapsula la lógica del teclado táctico y la entrada de datos de sesión.
  */
 
-import { RED_NUMBERS, AMERICAN_WHEEL_ORDER, ROULETTE_NUMBERS, RouletteTracker } from './rouletteTracker.js';
+import { RED_NUMBERS, AMERICAN_WHEEL_ORDER, ROULETTE_NUMBERS } from './src/utils/numberMeta.js';
+import { getColor, getParity, getHighLow, getDozen, getColumn, getWheelDistance } from './src/utils/numberMeta.js';
 import { tomadorStateStore } from './tomadorStateStore.js';
 import {
   COLUMN_ARROW_COLORS,
@@ -746,7 +747,7 @@ export class TomadorRenderer {
       const startAngle = (i * sliceAngle) - offsetAngle + 180;
       const endAngle = ((i + 1) * sliceAngle) - offsetAngle + 180;
 
-      const c = RouletteTracker.getColor(num);
+      const c = getColor(num);
       let baseColor = TOMADOR_COLORS.wheelDark;
       if (c === 'red') baseColor = TOMADOR_COLORS.red;
       else if (c === 'green') baseColor = TOMADOR_COLORS.green;
@@ -1607,14 +1608,14 @@ export class TomadorRenderer {
 
     reversedSpins.forEach((spin, idx) => {
       const num = spin.number;
-      const color = RouletteTracker.getColor(num);
-      const parity = RouletteTracker.getParity(num);
-      const hl = RouletteTracker.getHighLow(num);
-      const dozen = RouletteTracker.getDozen(num);
-      const column = RouletteTracker.getColumn(num);
+      const color = getColor(num);
+      const parity = getParity(num);
+      const hl = getHighLow(num);
+      const dozen = getDozen(num);
+      const column = getColumn(num);
 
       const prevSpin = reversedSpins[idx + 1];
-      const dist = prevSpin ? RouletteTracker.getWheelDistance(prevSpin.number, num) : null;
+      const dist = prevSpin ? getWheelDistance(prevSpin.number, num) : null;
       const distLabel = dist !== null ? `<span class="seq-meta seq-dist">±${dist}</span>` : '';
       const dealerLabel = spin.dealer ? `<span class="seq-meta seq-dealer">${spin.dealer}</span>` : '';
       const seqInline = `<div class="seq-inline"><span class="seq-main">${spin.id}</span>${distLabel}${dealerLabel}</div>`;

@@ -3,7 +3,7 @@
 import { rouletteSettingsStore } from './rouletteSettingsStore.js';
 
 // ─── Orden por defecto de los widgets ────────────────────────────────────────
-const DEFAULT_ORDER = ['leyenda', 'suertes', 'docenas', 'columnas', 'seisenas', 'ceros', 'series'];
+const DEFAULT_ORDER = ['leyenda', 'suertes', 'docenas', 'columnas', 'seisenas', 'plenos', 'series'];
 const LS_KEY      = 'orion_ataque_widget_order';
 const LS_KEY_SIZE = 'orion_ataque_panel_size';
 const LS_KEY_ZOOM = 'orion_ataque_panel_zoom';
@@ -119,14 +119,38 @@ function initPanelResize(panel) {
 }
 
 // ─── Lógica de atraso ─────────────────────────────────────────────────────────
-function buildGetAtraso(spins) {
+function buildGetAtraso(spins, windowSize = 0) {
+  const slice = windowSize > 0 ? spins.slice(-windowSize) : spins;
   return (checkFn) => {
     let delay = 0;
-    for (let i = spins.length - 1; i >= 0; i--) {
-      if (checkFn(String(spins[i].number))) break;
+    for (let i = slice.length - 1; i >= 0; i--) {
+      if (checkFn(String(slice[i].number))) break;
       delay++;
     }
-    return spins.length === 0 ? 0 : delay;
+    return slice.length === 0 ? 0 : delay;
+  };
+}
+
+// ─── Máximo histórico en ventana (Ultimos n números) ──────────────────────────
+function buildGetWindowMaxes(spins, settings) {
+  const maxWindow = settings?.atrasosMaxWindow ?? 100;
+  const windowSize = Number.isFinite(maxWindow) ? Math.max(0, Math.floor(maxWindow)) : 100;
+  const windowSpins = windowSize > 0 ? spins.slice(-windowSize) : spins;
+  const cache = {};
+  return (name) => {
+    if (cache[name] !== undefined) return cache[name];
+    let maxDelay = 0, currentDelay = 0;
+    for (const spin of windowSpins) {
+      if (String(spin.number) === name) {
+        if (currentDelay > maxDelay) maxDelay = currentDelay;
+        currentDelay = 0;
+      } else {
+        currentDelay++;
+      }
+    }
+    if (currentDelay > maxDelay) maxDelay = currentDelay;
+    cache[name] = maxDelay;
+    return maxDelay;
   };
 }
 
@@ -170,7 +194,7 @@ function badgeHtml(item, settings) {
 }
 
 // ─── Definición de cada widget ────────────────────────────────────────────────
-function buildWidgets(getAtraso, maxes, settings) {
+function buildWidgets(getAtraso, maxes, settings, getWindowMax, getWindowAtraso) {
   const getMax = (type, key) => maxes?.[type]?.[key] || 0;
   const makeBadge = (item) => badgeHtml(item, settings);
 
@@ -255,14 +279,26 @@ function buildWidgets(getAtraso, maxes, settings) {
       borderColor: 'rgba(234,179,8,0.25)'
     },
 
-    ceros: {
-      id: 'ceros',
-      title: 'Ceros',
-      icon: '🟢',
-      content: `<div style="display:flex;flex-wrap:wrap;gap:8px;">${[
-        { name:'00', atraso: getAtraso(n => n==='00'), bg:'rgba(34,197,94,0.2)', border:'rgba(34,197,94,0.5)', isExternal:false },
-        { name:'0',  atraso: getAtraso(n => n==='0'),  bg:'rgba(34,197,94,0.2)', border:'rgba(34,197,94,0.5)', isExternal:false },
-      ].map(makeBadge).join('')}</div>`,
+    plenos: {
+      id: 'plenos',
+      title: 'Plenos',
+      icon: '🎯',
+      content: `<div style="display:flex;flex-wrap:wrap;gap:6px;">${(() => {
+        const REDS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+        const items = [
+          { name:'00', bg:'rgba(34,197,94,0.2)', border:'rgba(34,197,94,0.5)' },
+          { name:'0',  bg:'rgba(34,197,94,0.2)', border:'rgba(34,197,94,0.5)' },
+        ];
+        for (let i = 1; i <= 36; i++) {
+          const isRed = REDS.includes(i);
+          items.push({
+            name: String(i),
+            bg: isRed ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)',
+            border: isRed ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.2)'
+          });
+        }
+        return items.map(d => makeBadge({ ...d, atraso: getWindowAtraso ? getWindowAtraso(x => x === d.name) : getAtraso(x => x === d.name), isExternal: true, limit: getWindowMax ? getWindowMax(d.name) : 0 })).join('');
+      })()}</div>`,
       accent: 'rgba(34,197,94,0.08)',
       borderColor: 'rgba(34,197,94,0.3)'
     },
@@ -414,8 +450,11 @@ export function renderAtaqueTab(tracker) {
   const spins    = tracker.getSpins();
   const maxes    = tracker.winWinEngine?.historicalMaxes || {};
   const settings = rouletteSettingsStore.getSnapshot();
+  const windowSize = settings?.atrasosMaxWindow ?? 100;
   const getAtraso = buildGetAtraso(spins);
-  const widgetDefs = buildWidgets(getAtraso, maxes, settings);
+  const getWindowAtraso = buildGetAtraso(spins, windowSize);
+  const getWindowMax = buildGetWindowMaxes(spins, settings);
+  const widgetDefs = buildWidgets(getAtraso, maxes, settings, getWindowMax, getWindowAtraso);
   const order    = getSavedOrder();
 
   // ── Wrapper principal ──────────────────────────────────────────────────────

@@ -1,0 +1,207 @@
+# 📍 PUNTO DE CONTROL — ORION / ROULETTE TRACKER
+
+## Objetivo principal
+
+Refactorizar la arquitectura de **Roulette Tracker** de forma incremental, reemplazando el sistema Legacy por un nuevo dominio basado en DDD y Clean Architecture, sin romper compatibilidad ni modificar el comportamiento observable.
+
+El objetivo final es que **RouletteTracker** sea el núcleo del sistema y el **Legacy Tracker** desaparezca gradualmente como adaptador temporal.
+
+---
+
+## Decisiones clave / Reglas fijadas
+
+- Refactorización incremental (nunca Big Bang).
+- Mantener el proyecto siempre compilando (`npm run build` obligatorio en cada fase).
+- No modificar UI, HTML, CSS ni Renderers durante la migración del dominio.
+- No migrar Engines (WinWin, DA, Orion, Kelly, etc.) hasta que el dominio sea estable.
+- `main.js` debe evolucionar hacia un **Composition Root**.
+- Toda lógica de negocio debe vivir en el dominio (`RouletteTracker` + Managers).
+- Cada entidad debe tener:
+  - 1 Owner
+  - 1 Modifier
+  - N Readers
+- El Legacy Tracker debe terminar siendo únicamente un adaptador de compatibilidad.
+- No introducir nuevas funcionalidades durante la migración.
+- Documentar cada fase mediante reportes en `reports/`.
+
+---
+
+## Lo que ya se ha resuelto / Código entregado
+
+### Etapa 1
+- Arquitectura base.
+- Bootstrap.
+- OrionKernel.
+- Separación inicial de responsabilidades.
+
+### Etapa 2 — Dominio
+
+Implementados:
+
+- TrackerState
+- RouletteTracker
+- SpinManager
+- SessionManager
+- SettingsManager
+- HistoryManager
+
+### Fase 4
+
+Migración del dominio:
+
+- CRUD de Series.
+- Session Recording.
+- HitMap / Ranking.
+- Limpieza de imports.
+- Eliminación de lógica de negocio de `main.js`.
+
+Resultado:
+
+- `main.js` pasó a ser prácticamente un Composition Root.
+
+### Fase 4.4
+
+HistoryManager completo:
+
+- Persistencia.
+- Historial de sesiones.
+- API pública.
+- Integración con RouletteTracker.
+
+### Fase 4.5
+
+Migración completa de:
+
+- Series
+- Recording
+- HitMap
+- History API
+
+Todo encapsulado dentro del dominio.
+
+### Fase 5.1
+
+Auditoría completa de sincronización.
+
+Se detectó:
+
+- Legacy era Owner de Spins.
+- Domain era Owner de Session, Settings e History.
+
+Se creó:
+
+`TrackerSyncAdapter`
+
+Nuevo flujo:
+
+UI
+↓
+TrackerSyncAdapter
+├── Legacy Tracker
+└── RouletteTracker
+
+El adaptador centraliza toda la sincronización.
+
+Se eliminaron sincronizaciones manuales desde `main.js`.
+
+Se documentó que `externalSpins` quedó funcionalmente muerto, pero aún se mantiene por compatibilidad.
+
+Build limpio.
+
+---
+
+## Estado arquitectónico actual
+
+Dominio:
+
+- RouletteTracker
+- TrackerState
+- SpinManager
+- SessionManager
+- SettingsManager
+- HistoryManager
+
+Compatibilidad:
+
+- Legacy Tracker
+- TrackerSyncAdapter
+
+Ownership actual:
+
+| Entidad | Owner |
+|---------|-------|
+| Spins | Legacy Tracker |
+| Session | RouletteTracker |
+| Settings | RouletteTracker |
+| History | RouletteTracker |
+
+---
+
+## Próximo paso pendiente
+
+### Fase 5.2 — Inversión del Ownership
+
+Objetivo:
+
+Invertir el flujo:
+
+ANTES
+
+UI
+↓
+TrackerSyncAdapter
+↓
+Legacy Tracker
+↓
+RouletteTracker
+
+DESPUÉS
+
+UI
+↓
+TrackerSyncAdapter
+↓
+RouletteTracker
+↓
+Legacy Tracker
+
+Antes de invertir el ownership se debe verificar que RouletteTracker ya implemente todas las responsabilidades del Legacy relacionadas con los spins (validación, persistencia, importación, normalización, etc.).
+
+Si no existe equivalencia funcional completa:
+
+- NO invertir el ownership.
+- Documentar exactamente qué responsabilidades faltan.
+- Mantener estabilidad por sobre el objetivo arquitectónico.
+
+---
+
+## Roadmap restante
+
+### Fase 5.2
+- Invertir Ownership de Spins (si existe equivalencia funcional).
+
+### Fase 5.3
+- Eliminar `externalSpins`.
+- Migrar Tester / Simulation.
+
+### Fase 5.4
+- Migrar Engines (WinWin, Orion, DA, Kelly, etc.) para consumir exclusivamente RouletteTracker.
+
+### Fase 5.5
+- Eliminar definitivamente el Legacy Tracker.
+- Eliminar TrackerSyncAdapter.
+- Consolidar RouletteTracker como única fuente de verdad del sistema.
+
+---
+
+## Estado general
+
+Arquitectura estable.
+
+Build limpio en todas las fases.
+
+Migración incremental exitosa.
+
+Sin regresiones funcionales detectadas.
+
+El proyecto ya no está reorganizando archivos: se encuentra en la transición controlada hacia una nueva arquitectura basada en un dominio explícito, con RouletteTracker destinado a convertirse en el núcleo definitivo del sistema.

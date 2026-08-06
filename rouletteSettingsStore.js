@@ -3,6 +3,18 @@ const DB_VERSION = 1;
 const STORE_NAME = 'state';
 const RECORD_KEY = 'settings';
 
+export const DEFAULT_MODULE_THRESHOLDS = {
+  docenas:          { limit: 5, critical: 9 },
+  columnas:         { limit: 5, critical: 9 },
+  suertesSencillas: { limit: 5, critical: 9 },
+  sixenas:          { limit: 5, critical: 9 },
+  plenos:           { limit: 5, critical: 9 },
+  seriesSectores:   { limit: 5, critical: 9 },
+  winwinEvenMoney:      { distanceMax: 5 },
+  winwinDozensColumns:  { distanceMax: 5 },
+  winwinSectors:         { distanceMax: 5 },
+};
+
 export function createDefaultRouletteSettings() {
   return {
     colorAlert: 5,
@@ -16,6 +28,10 @@ export function createDefaultRouletteSettings() {
     atrasosLimit: 5,
     atrasosCritical: 9,
     atrasosMaxWindow: 100,
+    moduleThresholds: clone(DEFAULT_MODULE_THRESHOLDS),
+    laboratory: {
+      enabled: false,
+    },
     ataqueOrange: -2,
     ataqueRed: 0,
     confidenceColors: 95,
@@ -31,6 +47,7 @@ export function createDefaultRouletteSettings() {
     rangeAtr: 500,
     rangeSeis: 100,
     weaknessDistCount: 3,
+    atRepTopK: 5,
     customSeries: [
       { name: 'S_1', numbers: ['1', '2', '7', '26', '27'], active: true },
       { name: 'S_12', numbers: ['11', '12', '17', '19', '34'], active: true },
@@ -61,6 +78,7 @@ export function createDefaultRouletteSettings() {
     showColRange: true,
     showColDozens: true,
     showColColumns: true,
+    showMuestra: true,
     sesgo97SectorSize: 5,
     sesgo97TopSectorSize: 5,
     sesgo97TopRanking: 10,
@@ -84,6 +102,54 @@ function normalizeSettings(input) {
 
   if (!Array.isArray(next.customSeries) || next.customSeries.length === 0) {
     next.customSeries = defaults.customSeries;
+  }
+
+  next.laboratory = {
+    enabled: next.laboratory && typeof next.laboratory === 'object' && next.laboratory.enabled === true,
+  };
+
+  // Migration: populate moduleThresholds from legacy flat fields if missing
+  const mt = next.moduleThresholds;
+  if (!mt || typeof mt !== 'object' || Object.keys(mt).length === 0) {
+    const legacyLimit    = source.atrasosLimit    ?? defaults.atrasosLimit;
+    const legacyCritical = source.atrasosCritical ?? defaults.atrasosCritical;
+    const defaultsWithLegacy = clone(DEFAULT_MODULE_THRESHOLDS);
+    Object.keys(defaultsWithLegacy).forEach(k => {
+      defaultsWithLegacy[k].limit       = legacyLimit;
+      defaultsWithLegacy[k].critical    = legacyCritical;
+    });
+    next.moduleThresholds = defaultsWithLegacy;
+  } else {
+    // Ensure each module has all fields (limit, critical only — maxWindow is global)
+    const modules = Object.keys(DEFAULT_MODULE_THRESHOLDS);
+    modules.forEach(mod => {
+      if (!next.moduleThresholds[mod]) {
+        next.moduleThresholds[mod] = { ...DEFAULT_MODULE_THRESHOLDS[mod] };
+      } else {
+        next.moduleThresholds[mod].limit      = next.moduleThresholds[mod].limit      ?? DEFAULT_MODULE_THRESHOLDS[mod].limit;
+        next.moduleThresholds[mod].critical   = next.moduleThresholds[mod].critical   ?? DEFAULT_MODULE_THRESHOLDS[mod].critical;
+      }
+    });
+  }
+
+  // Migration: rename ceros → plenos in existing data
+  if (next.moduleThresholds && next.moduleThresholds.ceros) {
+    if (!next.moduleThresholds.plenos) {
+      next.moduleThresholds.plenos = next.moduleThresholds.ceros;
+    }
+    delete next.moduleThresholds.ceros;
+  }
+
+  // Migration: single winwin.distanceMax → three group keys (mejora1)
+  if (next.moduleThresholds && next.moduleThresholds.winwin) {
+    const oldVal = next.moduleThresholds.winwin.distanceMax;
+    if (oldVal != null) {
+      ['winwinEvenMoney', 'winwinDozensColumns', 'winwinSectors'].forEach(key => {
+        next.moduleThresholds[key] = next.moduleThresholds[key] || {};
+        next.moduleThresholds[key].distanceMax = oldVal;
+      });
+    }
+    delete next.moduleThresholds.winwin;
   }
 
   return next;

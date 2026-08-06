@@ -1,7 +1,7 @@
 import { rouletteSettingsStore } from './rouletteSettingsStore.js';
 
 // ─── Orden por defecto de los widgets ────────────────────────────────────────
-const DEFAULT_ORDER = ['leyenda', 'suertes', 'docenas', 'columnas', 'seisenas', 'ceros', 'series'];
+const DEFAULT_ORDER = ['leyenda', 'suertes', 'docenas', 'columnas', 'seisenas', 'plenos', 'series'];
 const LS_KEY      = 'orion_atrasos_widget_order';
 const LS_KEY_SIZE = 'orion_atrasos_panel_size';
 const LS_KEY_ZOOM = 'orion_atrasos_panel_zoom';
@@ -269,6 +269,9 @@ function renderMiniBar(current, maxHist, accent) {
 function seriesLabHtml(item) {
   const tone = getSeriesTone(item.atraso, item.maxHist);
   const cardAccent = tone.accent.replace('0.85', '0.18').replace('0.25', '0.18');
+  const atrasoCircleStyle = item.isExternal
+    ? getCircleStyle(item.atraso, item.limit, item.criticalThreshold)
+    : { bg: tone.accent, color: '#fff', shadow: tone.glow, animation: 'none' };
 
   return `
     <div style="
@@ -293,10 +296,10 @@ function seriesLabHtml(item) {
         <div style="display:flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;background:${cardAccent};border:1px solid rgba(168,85,247,0.18);">
           <span style="font-size:0.58rem;color:#d9ccff;text-transform:uppercase;letter-spacing:0.08em;">Actual</span>
           ${renderCircle(item.atraso, {
-            bg: tone.accent,
-            color: '#fff',
-            shadow: tone.glow,
-            animation: 'none',
+            bg: atrasoCircleStyle.bg,
+            color: atrasoCircleStyle.color,
+            shadow: atrasoCircleStyle.shadow,
+            animation: atrasoCircleStyle.animation,
             size: 28,
             fontSize: '0.72rem'
           }, 'Atraso actual')}
@@ -389,14 +392,14 @@ function labMetricCardHtml(item, theme) {
 }
 
 // ─── Definición de cada widget ────────────────────────────────────────────────
-function buildWidgets(getDelayStats, settings) {
-  const LIMIT_COLOR   = settings.atrasosLimit ?? 5;
-  const LIMIT_PARITY  = settings.atrasosLimit ?? 5;
-  const LIMIT_HIGHLOW = settings.atrasosLimit ?? 5;
-  const LIMIT_DOZEN   = settings.atrasosLimit ?? 5;
-  const LIMIT_COLUMN  = settings.atrasosLimit ?? 5;
-  const CRITICAL_LIMIT = settings.atrasosCritical ?? 9;
-  const MAX_WINDOW     = settings.atrasosMaxWindow ?? 0;
+function buildWidgets(getDelayStats, thresholds) {
+  // Per-module thresholds (with fallbacks to defaults — maxWindow is now global)
+  const SS = thresholds.suertesSencillas ?? { limit: 5, critical: 9 };
+  const DOC = thresholds.docenas         ?? { limit: 5, critical: 9 };
+  const COL = thresholds.columnas        ?? { limit: 5, critical: 9 };
+  const SIX = thresholds.sixenas         ?? { limit: 5, critical: 9 };
+  const PLE = thresholds.plenos          ?? { limit: 5, critical: 9 };
+  const SER = thresholds.seriesSectores   ?? { limit: 5, critical: 9 };
 
   const red   = ["1","3","5","7","9","12","14","16","18","19","21","23","25","27","30","32","34","36"];
   const black = ["2","4","6","8","10","11","13","15","17","20","22","24","26","28","29","31","33","35"];
@@ -414,7 +417,7 @@ function buildWidgets(getDelayStats, settings) {
             <span style="width:12px;height:12px;border-radius:50%;background:#f97316;display:inline-block;"></span> Límite alcanzado
           </span>
           <span style="display:flex;align-items:center;gap:6px;">
-            <span style="width:12px;height:12px;border-radius:50%;background:#ef4444;display:inline-block;"></span> Crítico (≥${CRITICAL_LIMIT})
+            <span style="width:12px;height:12px;border-radius:50%;background:#ef4444;display:inline-block;"></span> Crítico (≥${SS.critical})
           </span>
           <span style="display:flex;align-items:center;gap:6px;">
             <span style="width:12px;height:12px;border-radius:50%;background:#22c55e;display:inline-block;"></span> Máximo
@@ -441,13 +444,12 @@ function buildWidgets(getDelayStats, settings) {
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;">${[
-        { name:'Rojo',        ...getDelayStats(n => red.includes(n)),   theme:{ accent:'rgba(239,68,68,0.85)', glow:'0 0 10px rgba(239,68,68,0.35)', border:'rgba(239,68,68,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'Rojo',        ...getDelayStats(n => red.includes(n)),   isExternal:true, limit:LIMIT_COLOR, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(239,68,68,0.85)', glow:'0 0 10px rgba(239,68,68,0.35)', border:'rgba(239,68,68,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'Negro',       ...getDelayStats(n => black.includes(n)),  isExternal:true, limit:LIMIT_COLOR, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(38,38,38,0.92)', glow:'0 0 10px rgba(255,255,255,0.14)', border:'rgba(255,255,255,0.18)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'Par',         ...getDelayStats(n => isNum(n) && parseInt(n)%2===0),  isExternal:true, limit:LIMIT_PARITY, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(59,130,246,0.85)', glow:'0 0 10px rgba(59,130,246,0.35)', border:'rgba(59,130,246,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'Impar',       ...getDelayStats(n => isNum(n) && parseInt(n)%2!==0), isExternal:true, limit:LIMIT_PARITY, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(96,165,250,0.85)', glow:'0 0 10px rgba(96,165,250,0.35)', border:'rgba(96,165,250,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'Falta (1-18)',...getDelayStats(n => isNum(n) && parseInt(n)>=1  && parseInt(n)<=18), isExternal:true, limit:LIMIT_HIGHLOW, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(234,179,8,0.85)', glow:'0 0 10px rgba(234,179,8,0.35)', border:'rgba(234,179,8,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'Pasa (19-36)',...getDelayStats(n => isNum(n) && parseInt(n)>=19 && parseInt(n)<=36), isExternal:true, limit:LIMIT_HIGHLOW, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(251,191,36,0.85)', glow:'0 0 10px rgba(251,191,36,0.35)', border:'rgba(251,191,36,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'Rojo',        ...getDelayStats(n => red.includes(n)),   isExternal:true, limit:SS.limit, criticalThreshold:SS.critical, theme:{ accent:'rgba(239,68,68,0.85)', glow:'0 0 10px rgba(239,68,68,0.35)', border:'rgba(239,68,68,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'Negro',       ...getDelayStats(n => black.includes(n)),  isExternal:true, limit:SS.limit, criticalThreshold:SS.critical, theme:{ accent:'rgba(38,38,38,0.92)', glow:'0 0 10px rgba(255,255,255,0.14)', border:'rgba(255,255,255,0.18)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'Par',         ...getDelayStats(n => isNum(n) && parseInt(n)%2===0),  isExternal:true, limit:SS.limit, criticalThreshold:SS.critical, theme:{ accent:'rgba(59,130,246,0.85)', glow:'0 0 10px rgba(59,130,246,0.35)', border:'rgba(59,130,246,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'Impar',       ...getDelayStats(n => isNum(n) && parseInt(n)%2!==0), isExternal:true, limit:SS.limit, criticalThreshold:SS.critical, theme:{ accent:'rgba(96,165,250,0.85)', glow:'0 0 10px rgba(96,165,250,0.35)', border:'rgba(96,165,250,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'Falta (1-18)',...getDelayStats(n => isNum(n) && parseInt(n)>=1  && parseInt(n)<=18), isExternal:true, limit:SS.limit, criticalThreshold:SS.critical, theme:{ accent:'rgba(234,179,8,0.85)', glow:'0 0 10px rgba(234,179,8,0.35)', border:'rgba(234,179,8,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'Pasa (19-36)',...getDelayStats(n => isNum(n) && parseInt(n)>=19 && parseInt(n)<=36), isExternal:true, limit:SS.limit, criticalThreshold:SS.critical, theme:{ accent:'rgba(251,191,36,0.85)', glow:'0 0 10px rgba(251,191,36,0.35)', border:'rgba(251,191,36,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
       ].map(item => labMetricCardHtml(item, item.theme)).join('')}</div>`,
       accent: 'rgba(239,68,68,0.08)',
       borderColor: 'rgba(239,68,68,0.25)'
@@ -469,9 +471,9 @@ function buildWidgets(getDelayStats, settings) {
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;">${[
-        { name:'1ª Docena', ...getDelayStats(n => isNum(n) && parseInt(n)>=1  && parseInt(n)<=12), isExternal:true, limit:LIMIT_DOZEN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(168,85,247,0.85)', glow:'0 0 10px rgba(168,85,247,0.35)', border:'rgba(168,85,247,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'2ª Docena', ...getDelayStats(n => isNum(n) && parseInt(n)>=13 && parseInt(n)<=24), isExternal:true, limit:LIMIT_DOZEN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(245,158,11,0.85)', glow:'0 0 10px rgba(245,158,11,0.35)', border:'rgba(245,158,11,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'3ª Docena', ...getDelayStats(n => isNum(n) && parseInt(n)>=25 && parseInt(n)<=36), isExternal:true, limit:LIMIT_DOZEN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(239,68,68,0.85)', glow:'0 0 10px rgba(239,68,68,0.35)', border:'rgba(239,68,68,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'1ª Docena', ...getDelayStats(n => isNum(n) && parseInt(n)>=1  && parseInt(n)<=12), isExternal:true, limit:DOC.limit, criticalThreshold:DOC.critical, theme:{ accent:'rgba(168,85,247,0.85)', glow:'0 0 10px rgba(168,85,247,0.35)', border:'rgba(168,85,247,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'2ª Docena', ...getDelayStats(n => isNum(n) && parseInt(n)>=13 && parseInt(n)<=24), isExternal:true, limit:DOC.limit, criticalThreshold:DOC.critical, theme:{ accent:'rgba(245,158,11,0.85)', glow:'0 0 10px rgba(245,158,11,0.35)', border:'rgba(245,158,11,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'3ª Docena', ...getDelayStats(n => isNum(n) && parseInt(n)>=25 && parseInt(n)<=36), isExternal:true, limit:DOC.limit, criticalThreshold:DOC.critical, theme:{ accent:'rgba(239,68,68,0.85)', glow:'0 0 10px rgba(239,68,68,0.35)', border:'rgba(239,68,68,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
       ].map(item => labMetricCardHtml(item, item.theme)).join('')}</div>`,
       accent: 'rgba(168,85,247,0.08)',
       borderColor: 'rgba(168,85,247,0.25)'
@@ -493,9 +495,9 @@ function buildWidgets(getDelayStats, settings) {
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;">${[
-        { name:'Columna 1', ...getDelayStats(n => isNum(n) && parseInt(n)%3===1), isExternal:true, limit:LIMIT_COLUMN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(14,165,233,0.85)', glow:'0 0 10px rgba(14,165,233,0.35)', border:'rgba(14,165,233,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'Columna 2', ...getDelayStats(n => isNum(n) && parseInt(n)%3===2), isExternal:true, limit:LIMIT_COLUMN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(59,130,246,0.85)', glow:'0 0 10px rgba(59,130,246,0.35)', border:'rgba(59,130,246,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'Columna 3', ...getDelayStats(n => isNum(n) && parseInt(n)%3===0), isExternal:true, limit:LIMIT_COLUMN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(34,197,94,0.85)', glow:'0 0 10px rgba(34,197,94,0.35)', border:'rgba(34,197,94,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'Columna 1', ...getDelayStats(n => isNum(n) && parseInt(n)%3===1), isExternal:true, limit:COL.limit, criticalThreshold:COL.critical, theme:{ accent:'rgba(14,165,233,0.85)', glow:'0 0 10px rgba(14,165,233,0.35)', border:'rgba(14,165,233,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'Columna 2', ...getDelayStats(n => isNum(n) && parseInt(n)%3===2), isExternal:true, limit:COL.limit, criticalThreshold:COL.critical, theme:{ accent:'rgba(59,130,246,0.85)', glow:'0 0 10px rgba(59,130,246,0.35)', border:'rgba(59,130,246,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'Columna 3', ...getDelayStats(n => isNum(n) && parseInt(n)%3===0), isExternal:true, limit:COL.limit, criticalThreshold:COL.critical, theme:{ accent:'rgba(34,197,94,0.85)', glow:'0 0 10px rgba(34,197,94,0.35)', border:'rgba(34,197,94,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
       ].map(item => labMetricCardHtml(item, item.theme)).join('')}</div>`,
       accent: 'rgba(14,165,233,0.08)',
       borderColor: 'rgba(14,165,233,0.25)'
@@ -517,25 +519,37 @@ function buildWidgets(getDelayStats, settings) {
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;">${[
-        { name:'S1 (1-6)',   ...getDelayStats(n => ["1","2","3","4","5","6"].includes(n)),       isExternal:true, limit:LIMIT_DOZEN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(234,179,8,0.85)', glow:'0 0 10px rgba(234,179,8,0.35)', border:'rgba(234,179,8,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'S2 (7-12)',  ...getDelayStats(n => ["7","8","9","10","11","12"].includes(n)),    isExternal:true, limit:LIMIT_DOZEN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(245,158,11,0.85)', glow:'0 0 10px rgba(245,158,11,0.35)', border:'rgba(245,158,11,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'S3 (13-18)', ...getDelayStats(n => ["13","14","15","16","17","18"].includes(n)), isExternal:true, limit:LIMIT_DOZEN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(239,68,68,0.85)', glow:'0 0 10px rgba(239,68,68,0.35)', border:'rgba(239,68,68,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'S4 (19-24)', ...getDelayStats(n => ["19","20","21","22","23","24"].includes(n)), isExternal:true, limit:LIMIT_DOZEN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(14,165,233,0.85)', glow:'0 0 10px rgba(14,165,233,0.35)', border:'rgba(14,165,233,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'S5 (25-30)', ...getDelayStats(n => ["25","26","27","28","29","30"].includes(n)), isExternal:true, limit:LIMIT_DOZEN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(168,85,247,0.85)', glow:'0 0 10px rgba(168,85,247,0.35)', border:'rgba(168,85,247,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
-        { name:'S6 (31-36)', ...getDelayStats(n => ["31","32","33","34","35","36"].includes(n)), isExternal:true, limit:LIMIT_DOZEN, criticalThreshold:CRITICAL_LIMIT, theme:{ accent:'rgba(34,197,94,0.85)', glow:'0 0 10px rgba(34,197,94,0.35)', border:'rgba(34,197,94,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'S1 (1-6)',   ...getDelayStats(n => ["1","2","3","4","5","6"].includes(n)),       isExternal:true, limit:SIX.limit, criticalThreshold:SIX.critical, theme:{ accent:'rgba(234,179,8,0.85)', glow:'0 0 10px rgba(234,179,8,0.35)', border:'rgba(234,179,8,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'S2 (7-12)',  ...getDelayStats(n => ["7","8","9","10","11","12"].includes(n)),    isExternal:true, limit:SIX.limit, criticalThreshold:SIX.critical, theme:{ accent:'rgba(245,158,11,0.85)', glow:'0 0 10px rgba(245,158,11,0.35)', border:'rgba(245,158,11,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'S3 (13-18)', ...getDelayStats(n => ["13","14","15","16","17","18"].includes(n)), isExternal:true, limit:SIX.limit, criticalThreshold:SIX.critical, theme:{ accent:'rgba(239,68,68,0.85)', glow:'0 0 10px rgba(239,68,68,0.35)', border:'rgba(239,68,68,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'S4 (19-24)', ...getDelayStats(n => ["19","20","21","22","23","24"].includes(n)), isExternal:true, limit:SIX.limit, criticalThreshold:SIX.critical, theme:{ accent:'rgba(14,165,233,0.85)', glow:'0 0 10px rgba(14,165,233,0.35)', border:'rgba(14,165,233,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'S5 (25-30)', ...getDelayStats(n => ["25","26","27","28","29","30"].includes(n)), isExternal:true, limit:SIX.limit, criticalThreshold:SIX.critical, theme:{ accent:'rgba(168,85,247,0.85)', glow:'0 0 10px rgba(168,85,247,0.35)', border:'rgba(168,85,247,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
+        { name:'S6 (31-36)', ...getDelayStats(n => ["31","32","33","34","35","36"].includes(n)), isExternal:true, limit:SIX.limit, criticalThreshold:SIX.critical, theme:{ accent:'rgba(34,197,94,0.85)', glow:'0 0 10px rgba(34,197,94,0.35)', border:'rgba(34,197,94,0.22)', maxBg:'linear-gradient(180deg, #34d399 0%, #16a34a 100%)', maxColor:'#07130b', maxShadow:'0 0 8px rgba(34,197,94,0.5)' } },
       ].map(item => labMetricCardHtml(item, item.theme)).join('')}</div>`,
       accent: 'rgba(234,179,8,0.08)',
       borderColor: 'rgba(234,179,8,0.25)'
     },
 
-    ceros: {
-      id: 'ceros',
-      title: 'Ceros',
-      icon: '🟢',
-      content: `<div style="display:flex;flex-wrap:wrap;gap:8px;">${[
-        { name:'00', ...getDelayStats(n => n==='00'), bg:'rgba(34,197,94,0.2)', border:'rgba(34,197,94,0.5)', isExternal:false },
-        { name:'0',  ...getDelayStats(n => n==='0'),  bg:'rgba(34,197,94,0.2)', border:'rgba(34,197,94,0.5)', isExternal:false },
-      ].map(badgeHtml).join('')}</div>`,
+    plenos: {
+      id: 'plenos',
+      title: 'Plenos',
+      icon: '🎯',
+      content: `<div style="display:flex;flex-wrap:wrap;gap:6px;">${(() => {
+        const REDS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+        const items = [
+          { name:'00', bg:'rgba(34,197,94,0.2)', border:'rgba(34,197,94,0.5)' },
+          { name:'0',  bg:'rgba(34,197,94,0.2)', border:'rgba(34,197,94,0.5)' },
+        ];
+        for (let i = 1; i <= 36; i++) {
+          const isRed = REDS.includes(i);
+          items.push({
+            name: String(i),
+            bg: isRed ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)',
+            border: isRed ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.2)'
+          });
+        }
+        return items.map(d => badgeHtml({ ...d, ...getDelayStats(x => x === d.name), isExternal: true, limit: PLE.limit, criticalThreshold: PLE.critical })).join('');
+      })()}</div>`,
       accent: 'rgba(34,197,94,0.08)',
       borderColor: 'rgba(34,197,94,0.3)'
     },
@@ -556,13 +570,13 @@ function buildWidgets(getDelayStats, settings) {
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;">${[
-        { name:'S1',  ...getDelayStats(n => ["1","27","2","26","7"].includes(n)),              bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:false },
-        { name:'S11', ...getDelayStats(n => ["12","19","11","17","34"].includes(n)),            bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:false },
-        { name:'S14', ...getDelayStats(n => ["15","24","16","14","28"].includes(n)),            bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:false },
-        { name:'S5',  ...getDelayStats(n => ["32","5","31","33","23"].includes(n)),             bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:false },
-        { name:'S0',  ...getDelayStats(n => ["00","10","0","30","20"].includes(n)),             bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:false },
-        { name:'S3',  ...getDelayStats(n => ["3","4","6","8","9","13","18"].includes(n)),       bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:false },
-        { name:'S21', ...getDelayStats(n => ["21","22","25","29","35","36"].includes(n)),       bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:false },
+        { name:'S1',  ...getDelayStats(n => ["1","27","2","26","7"].includes(n)),              bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:true, limit:SER.limit, criticalThreshold:SER.critical },
+        { name:'S11', ...getDelayStats(n => ["12","19","11","17","34"].includes(n)),            bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:true, limit:SER.limit, criticalThreshold:SER.critical },
+        { name:'S14', ...getDelayStats(n => ["15","24","16","14","28"].includes(n)),            bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:true, limit:SER.limit, criticalThreshold:SER.critical },
+        { name:'S5',  ...getDelayStats(n => ["32","5","31","33","23"].includes(n)),             bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:true, limit:SER.limit, criticalThreshold:SER.critical },
+        { name:'S0',  ...getDelayStats(n => ["00","10","0","30","20"].includes(n)),             bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:true, limit:SER.limit, criticalThreshold:SER.critical },
+        { name:'S3',  ...getDelayStats(n => ["3","4","6","8","9","13","18"].includes(n)),       bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:true, limit:SER.limit, criticalThreshold:SER.critical },
+        { name:'S21', ...getDelayStats(n => ["21","22","25","29","35","36"].includes(n)),       bg:'rgba(168,85,247,0.1)', border:'rgba(168,85,247,0.3)', isExternal:true, limit:SER.limit, criticalThreshold:SER.critical },
       ].map(seriesLabHtml).join('')}</div>`,
       accent: 'rgba(168,85,247,0.08)',
       borderColor: 'rgba(168,85,247,0.3)'
@@ -700,8 +714,9 @@ export function renderAtrasosTab(tracker) {
 
   const spins    = tracker.getSpins();
   const settings = rouletteSettingsStore.getSnapshot();
-  const getDelayStats = buildGetDelayStats(spins, settings.atrasosMaxWindow ?? 0);
-  const widgetDefs = buildWidgets(getDelayStats, settings);
+  const thresholds = settings.moduleThresholds || {};
+  const getDelayStats = buildGetDelayStats(spins, settings.atrasosMaxWindow ?? 100);
+  const widgetDefs = buildWidgets(getDelayStats, thresholds);
   const order    = getSavedOrder();
 
   // ── Wrapper principal ──────────────────────────────────────────────────────
@@ -718,7 +733,17 @@ export function renderAtrasosTab(tracker) {
       <input type="range" id="atrasos-zoom-slider" min="50" max="150" value="${Math.round(currentZoom * 100)}" style="width:80px;height:4px;accent-color:var(--color-gold);cursor:pointer;">
       <span id="atrasos-zoom-value" style="font-size:0.7rem;color:var(--color-gold);font-family:var(--font-numbers);font-weight:bold;min-width:35px;text-align:right;">${Math.round(currentZoom * 100)}%</span>
     </div>
-      <div style="display:flex;gap:6px;" id="atrasos-action-buttons">
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="font-size:0.65rem;color:#6b7280;display:flex;align-items:center;gap:4px;">
+          <span style="color:#94a3b8;font-weight:400;">Total:</span>
+          <span style="color:#fbbf24;font-weight:800;">${spins.length}</span>
+        </span>
+        <span style="font-size:0.65rem;color:#6b7280;display:flex;align-items:center;gap:4px;margin-right:6px;">
+          <span style="color:#94a3b8;font-weight:400;">Muestra:</span>
+          <span style="color:#34d399;font-weight:800;">${Math.min(spins.length, settings.atrasosMaxWindow ?? 100)}</span>
+          <span style="color:#64748b;font-size:0.6rem;">(ventana ${settings.atrasosMaxWindow ?? 100})</span>
+        </span>
+        <div style="display:flex;gap:6px;" id="atrasos-action-buttons">
         <button id="btn-refresh-atrasos" style="
           background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);
           border-radius:6px;color:var(--color-gold,#f59e0b);font-size:0.72rem;padding:3px 12px;cursor:pointer;
@@ -758,8 +783,11 @@ export function renderAtrasosTab(tracker) {
 
   // Resize del panel completo
   const panel = container.closest('.panel') || container.parentElement;
-  if (panel && !panel.querySelector('#atrasos-resize-handle')) {
-    initPanelResize(panel);
+  if (panel) {
+    panel.style.background = 'linear-gradient(145deg, #0f172a 0%, #1e293b 100%)';
+    if (!panel.querySelector('#atrasos-resize-handle')) {
+      initPanelResize(panel);
+    }
   }
 
   // Botón de actualizar parámetros (recarga de página)

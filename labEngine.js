@@ -29,8 +29,40 @@ export const SUBCONJUNTOS = {
     "S4 (19-24)": new Set(["19", "20", "21", "22", "23", "24"]),
     "S5 (25-30)": new Set(["25", "26", "27", "28", "29", "30"]),
     "S6 (31-36)": new Set(["31", "32", "33", "34", "35", "36"]),
-    "Sector S1": new Set(["1", "5", "9", "14", "20", "31", "33", "36"]),
-    "Sector S11": new Set(["11", "12", "13", "14", "15", "16", "17", "18"])
+    "Series S1": new Set(["1", "27", "2", "26", "7"]),
+    "Series S11": new Set(["12", "19", "11", "17", "34"]),
+    "Series S14": new Set(["15", "24", "16", "14", "28"]),
+    "Series S5": new Set(["32", "5", "31", "33", "23"]),
+    "Series S0": new Set(["00", "10", "0", "30", "20"]),
+    "Series S3": new Set(["3", "4", "6", "8", "9", "13", "18"]),
+    "Series S21": new Set(["21", "22", "25", "29", "35", "36"])
+};
+
+// Map each set name to its module key for per-module thresholds
+const SET_TO_MODULE = {
+  "Rojo": "suertesSencillas",
+  "Negro": "suertesSencillas",
+  "Par": "suertesSencillas",
+  "Impar": "suertesSencillas",
+  "1a Docena": "docenas",
+  "2a Docena": "docenas",
+  "3a Docena": "docenas",
+  "Columna 1": "columnas",
+  "Columna 2": "columnas",
+  "Columna 3": "columnas",
+  "S1 (1-6)": "sixenas",
+  "S2 (7-12)": "sixenas",
+  "S3 (13-18)": "sixenas",
+  "S4 (19-24)": "sixenas",
+  "S5 (25-30)": "sixenas",
+  "S6 (31-36)": "sixenas",
+  "Series S1": "seriesSectores",
+  "Series S11": "seriesSectores",
+  "Series S14": "seriesSectores",
+  "Series S5": "seriesSectores",
+  "Series S0": "seriesSectores",
+  "Series S3": "seriesSectores",
+  "Series S21": "seriesSectores",
 };
 
 export class LabEngine {
@@ -45,17 +77,19 @@ export class LabEngine {
         const spins = (this.tracker && typeof this.tracker.getSpins === 'function') ? this.tracker.getSpins() : [];
         if (spins.length === 0) return { actualDelay: 0, maxDelay: 1 };
 
+        const settings = rouletteSettingsStore.getSnapshot();
+        const moduleKey = SET_TO_MODULE[setName] || 'suertesSencillas';
+        const thresholds = settings.moduleThresholds || {};
+        const modThresh = thresholds[moduleKey] || {};
+        const windowSize = Number.isFinite(settings.atrasosMaxWindow) ? Math.max(0, Math.floor(settings.atrasosMaxWindow)) : 100;
+        const windowSpins = windowSize > 0 ? spins.slice(-windowSize) : spins;
+
         let actualDelay = 0;
-        for (let i = spins.length - 1; i >= 0; i--) {
-            const numStr = String(spins[i].number);
+        for (let i = windowSpins.length - 1; i >= 0; i--) {
+            const numStr = String(windowSpins[i].number);
             if (targetSet.has(numStr)) break;
             actualDelay++;
         }
-
-        const settings = rouletteSettingsStore.getSnapshot();
-        const maxWindow = settings.atrasosMaxWindow ?? 0;
-        const windowSize = Number.isFinite(maxWindow) ? Math.max(0, Math.floor(maxWindow)) : 0;
-        const windowSpins = windowSize > 0 ? spins.slice(-windowSize) : spins;
 
         let maxDelay = 0;
         let windowDelay = 0;

@@ -1279,3 +1279,782 @@ input:checked + .slider-switch:before {
   transition: opacity 0.08s ease;
 }
 
+/* --- Laboratory UI Shell (Fase 6.C.2) --- */
+.laboratory-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: calc(100vh - 140px);
+}
+
+.laboratory-shell-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.laboratory-shell-heading {
+  min-width: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.laboratory-shell-kicker,
+.laboratory-shell-subtitle,
+.laboratory-shell-breadcrumb,
+.laboratory-shell-note,
+.laboratory-shell-status-copy,
+.laboratory-shell-empty-copy,
+.laboratory-shell-metric-note {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.laboratory-shell-title {
+  margin: 0;
+}
+
+.laboratory-shell-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.laboratory-shell-actions {
+  min-width: 180px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.laboratory-shell-sidebar-toggle,
+.laboratory-shell-breadcrumb-button,
+.laboratory-shell-group-toggle,
+.laboratory-shell-overlay-close,
+.laboratory-shell-overlay-button,
+.laboratory-shell-action-button,
+.laboratory-shell-chip-button,
+.laboratory-shell-status-pill,
+.laboratory-shell-setting-pill,
+.laboratory-shell-metric,
+.laboratory-shell-skeleton-row,
+.laboratory-shell-timeline-step,
+.laboratory-shell-mini-card,
+.laboratory-shell-matrix-row {
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.laboratory-shell-sidebar-toggle,
+.laboratory-shell-breadcrumb-button,
+.laboratory-shell-group-toggle,
+.laboratory-shell-overlay-close,
+.laboratory-shell-overlay-button,
+.laboratory-shell-action-button,
+.laboratory-shell-chip-button,
+.laboratory-shell-status-pill,
+.laboratory-shell-setting-pill,
+.laboratory-shell-metric,
+.laboratory-shell-skeleton-row,
+.laboratory-shell-timeline-step,
+.laboratory-shell-mini-card,
+.laboratory-shell-matrix-row {
+  cursor: pointer;
+}
+
+.laboratory-shell-sidebar-toggle {
+  min-height: 44px;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.38);
+  color: var(--text-main);
+}
+
+.laboratory-shell-breadcrumb-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.laboratory-shell-breadcrumb-button.is-active {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.laboratory-shell-sort {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.laboratory-shell-sort select,
+.laboratory-shell-search input {
+  min-height: 42px;
+  width: 100%;
+}
+
+.laboratory-shell-toolbar-state {
+  justify-self: end;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.3);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.laboratory-shell-summary-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.laboratory-shell-summary-line.secondary {
+  margin-top: 0.35rem;
+}
+
+.laboratory-shell-toggle-group {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.laboratory-shell-toggle-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.laboratory-shell-group-toggle {
+  min-height: 40px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.4);
+  color: var(--text-main);
+}
+
+.laboratory-shell-toggle-body[hidden] {
+  display: none;
+}
+
+.laboratory-shell-metric,
+.laboratory-shell-mini-card,
+.laboratory-shell-setting-pill,
+.laboratory-shell-timeline-step,
+.laboratory-shell-matrix-row,
+.laboratory-shell-skeleton-row {
+  width: 100%;
+  text-align: left;
+}
+
+.laboratory-shell-metric,
+.laboratory-shell-mini-card,
+.laboratory-shell-setting-pill,
+.laboratory-shell-timeline-step,
+.laboratory-shell-matrix-row,
+.laboratory-shell-skeleton-row,
+.laboratory-shell-chip-button,
+.laboratory-shell-status-pill,
+.laboratory-shell-overlay-button {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.42);
+  color: var(--text-main);
+}
+
+.laboratory-shell-metric,
+.laboratory-shell-mini-card,
+.laboratory-shell-setting-pill,
+.laboratory-shell-timeline-step,
+.laboratory-shell-matrix-row,
+.laboratory-shell-skeleton-row {
+  border-radius: var(--radius-md);
+}
+
+.laboratory-shell-metric.is-selected,
+.laboratory-shell-mini-card.is-selected,
+.laboratory-shell-setting-pill.is-selected,
+.laboratory-shell-timeline-step.is-selected,
+.laboratory-shell-matrix-row.is-selected,
+.laboratory-shell-skeleton-row.is-selected,
+.laboratory-shell-chip-button.is-active,
+.laboratory-shell-status-pill.is-active {
+  border-color: rgba(52, 211, 153, 0.38);
+  background: rgba(52, 211, 153, 0.14);
+}
+
+.laboratory-shell-setting-pill {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.8rem 0.9rem;
+}
+
+.laboratory-shell-setting-pill span {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.laboratory-shell-setting-pill strong {
+  font-size: 0.95rem;
+}
+
+.laboratory-shell-timeline-step,
+.laboratory-shell-mini-card,
+.laboratory-shell-matrix-row,
+.laboratory-shell-skeleton-row {
+  padding: 0.8rem 0.9rem;
+}
+
+.laboratory-shell-timeline-step,
+.laboratory-shell-mini-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.laboratory-shell-mini-card strong,
+.laboratory-shell-timeline-step strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.laboratory-shell-mini-card p,
+.laboratory-shell-timeline-step p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.laboratory-shell-overlay-host {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+
+.laboratory-shell-overlay-backdrop {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.62);
+  backdrop-filter: blur(10px);
+}
+
+.laboratory-shell-overlay {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 0.95rem;
+  padding: 1rem;
+  border-radius: calc(var(--radius-lg) + 2px);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.95);
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.5);
+}
+
+.laboratory-shell-overlay-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.laboratory-shell-overlay-close {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.5);
+  color: var(--text-main);
+}
+
+.laboratory-shell-overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.laboratory-shell-overlay-button {
+  min-height: 42px;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+}
+
+.laboratory-shell-overlay-button.variant-primary {
+  border-color: rgba(52, 211, 153, 0.36);
+  background: rgba(52, 211, 153, 0.14);
+}
+
+.laboratory-shell-overlay-button.variant-secondary {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.laboratory-shell.is-sidebar-collapsed .laboratory-shell-grid {
+  grid-template-columns: minmax(84px, 96px) minmax(0, 1fr);
+}
+
+.laboratory-shell.is-sidebar-collapsed .laboratory-shell-sidebar {
+  padding-inline: 0.65rem;
+}
+
+.laboratory-shell.is-sidebar-collapsed .laboratory-shell-sidebar .laboratory-shell-section-title,
+.laboratory-shell.is-sidebar-collapsed .laboratory-shell-sidebar .laboratory-shell-nav-label,
+.laboratory-shell.is-sidebar-collapsed .laboratory-shell-sidebar .laboratory-shell-nav-badge,
+.laboratory-shell.is-sidebar-collapsed .laboratory-shell-sidebar .laboratory-shell-sidebar-footer,
+.laboratory-shell.is-sidebar-collapsed .laboratory-shell-sidebar .laboratory-shell-note {
+  display: none;
+}
+
+.laboratory-shell.is-sidebar-collapsed .laboratory-shell-nav-btn {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.laboratory-shell.is-sidebar-collapsed .laboratory-shell-nav-btn .laboratory-shell-nav-icon {
+  width: auto;
+}
+
+.laboratory-shell-action-slot {
+  width: 100%;
+  max-width: 220px;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.laboratory-shell-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.laboratory-shell-sidebar,
+.laboratory-shell-toolbar,
+.laboratory-shell-workspace,
+.laboratory-shell-statusbar {
+  padding: 1rem;
+}
+
+.laboratory-shell-sidebar {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.laboratory-shell-section-title {
+  margin: 0;
+}
+
+.laboratory-shell-nav {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.laboratory-shell-nav-btn {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+}
+
+.laboratory-shell-nav-btn .laboratory-shell-nav-icon {
+  width: 1.5rem;
+  text-align: center;
+}
+
+.laboratory-shell-nav-btn .laboratory-shell-nav-label {
+  min-width: 0;
+}
+
+.laboratory-shell-nav-btn .laboratory-shell-nav-badge {
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.laboratory-shell-nav-btn.active,
+.laboratory-shell-nav-btn[aria-selected='true'] {
+  background: rgba(52, 211, 153, 0.14);
+  border-color: rgba(52, 211, 153, 0.36);
+  color: var(--text-main);
+}
+
+.laboratory-shell-sidebar-footer {
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.laboratory-shell-main {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.laboratory-shell-toolbar-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(120px, 180px) minmax(0, 1fr) auto auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.laboratory-shell-search {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.laboratory-shell-search input {
+  width: 100%;
+}
+
+.laboratory-shell-filter-group,
+.laboratory-shell-action-group,
+.laboratory-shell-chip-row,
+.laboratory-shell-status-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.laboratory-shell-chip-button,
+.laboratory-shell-action-button,
+.laboratory-shell-chip,
+.laboratory-shell-status-pill {
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.42);
+  color: var(--text-main);
+  font-size: 0.8rem;
+}
+
+.laboratory-shell-chip-button.is-active,
+.laboratory-shell-status-pill.is-active {
+  border-color: rgba(52, 211, 153, 0.38);
+  background: rgba(52, 211, 153, 0.14);
+}
+
+.laboratory-shell-status-pill.tone-amber.is-active {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.14);
+}
+
+.laboratory-shell-status-pill.tone-emerald.is-active {
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(52, 211, 153, 0.14);
+}
+
+.laboratory-shell-status-pill.tone-slate.is-active {
+  border-color: rgba(100, 116, 139, 0.45);
+  background: rgba(100, 116, 139, 0.16);
+}
+
+.laboratory-shell-status-pill.tone-blue.is-active {
+  border-color: rgba(96, 165, 250, 0.45);
+  background: rgba(96, 165, 250, 0.14);
+}
+
+.laboratory-shell-status-pill.tone-violet.is-active {
+  border-color: rgba(167, 139, 250, 0.45);
+  background: rgba(167, 139, 250, 0.14);
+}
+
+.laboratory-shell-workspace {
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.laboratory-shell-workspace-summary {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.22);
+}
+
+.laboratory-shell-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.laboratory-shell-workspace-badge {
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.24);
+  color: #d1fae5;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.laboratory-shell-workspace-body {
+  min-width: 0;
+}
+
+.laboratory-shell-overview-grid,
+.laboratory-shell-view-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.laboratory-shell-overview-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.laboratory-shell-overview-main {
+  grid-column: 1 / -1;
+}
+
+.laboratory-shell-metric {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.laboratory-shell-metric-title {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.laboratory-shell-metric-value {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.45rem;
+  font-weight: 800;
+}
+
+.laboratory-shell-placeholder-card {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.laboratory-shell-skeleton-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.laboratory-shell-skeleton-row {
+  display: grid;
+  grid-template-columns: auto minmax(80px, 120px) minmax(120px, 1fr) auto;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.laboratory-shell-skeleton-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.65);
+}
+
+.laboratory-shell-skeleton-line {
+  display: block;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.laboratory-shell-skeleton-line.short {
+  width: 100%;
+}
+
+.laboratory-shell-skeleton-line.long {
+  width: 100%;
+}
+
+.laboratory-shell-skeleton-tag {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.laboratory-shell-timeline {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.laboratory-shell-timeline-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.laboratory-shell-timeline-dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  margin-top: 0.3rem;
+  background: rgba(148, 163, 184, 0.25);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.laboratory-shell-timeline-step.active .laboratory-shell-timeline-dot {
+  background: rgba(52, 211, 153, 0.75);
+  border-color: rgba(52, 211, 153, 0.8);
+}
+
+.laboratory-shell-matrix {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.laboratory-shell-matrix-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.laboratory-shell-matrix-row span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.1rem;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.laboratory-shell-matrix-row.header span {
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.laboratory-shell-card-stack {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.laboratory-shell-mini-card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem;
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.laboratory-shell-replay-track {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.laboratory-shell-replay-track span {
+  display: block;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(52, 211, 153, 0.16), rgba(96, 165, 250, 0.18));
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.laboratory-shell-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.laboratory-shell-settings-grid label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.laboratory-shell-settings-grid input {
+  width: 100%;
+}
+
+.laboratory-shell-statusbar {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.laboratory-shell-overlay-host {
+  min-height: 0;
+}
+
+@media (max-width: 1200px) {
+  .laboratory-shell-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .laboratory-shell-sidebar {
+    order: 0;
+  }
+
+  .laboratory-shell-toolbar-row {
+    grid-template-columns: 1fr;
+  }
+
+  .laboratory-shell-actions {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .laboratory-shell-header,
+  .laboratory-shell-workspace-header {
+    flex-direction: column;
+  }
+
+  .laboratory-shell-overview-grid,
+  .laboratory-shell-view-grid,
+  .laboratory-shell-settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .laboratory-shell-skeleton-row,
+  .laboratory-shell-matrix-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .laboratory-shell {
+    min-height: auto;
+  }
+
+  .laboratory-shell-nav-btn {
+    grid-template-columns: auto 1fr;
+  }
+
+  .laboratory-shell-nav-btn .laboratory-shell-nav-badge {
+    display: none;
+  }
+
+  .laboratory-shell-toolbar,
+  .laboratory-shell-sidebar,
+  .laboratory-shell-workspace,
+  .laboratory-shell-statusbar {
+    padding: 0.85rem;
+  }
+}
+

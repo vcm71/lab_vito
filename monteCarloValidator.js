@@ -7,18 +7,19 @@
  * H1: Distribución con Sesgo (P > 1/38)
  */
 
-import { RouletteTracker } from './rouletteTracker.js';
-import { LogicEngine } from './ORION_logicEngine.js';
-import { WinWinEngine } from './3_WinWin_Atrasos_CHI_Estrategias.js';
-
 const ROULETTE_NUMS = [
   "00","0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18",
   "19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36"
 ];
 
 export class MonteCarloValidator {
-  constructor(seed = 12345) {
+  /**
+   * @param {number} [seed=12345]
+   * @param {import('./src/tracker/RouletteTracker.js').RouletteTracker} [domainTracker] - Tracker del dominio (Fase5.5.2)
+   */
+  constructor(seed = 12345, domainTracker = null) {
     this.seed = seed;
+    this.domainTracker = domainTracker;
   }
 
   // Generador de números aleatorios determinista (Seeded RNG)
@@ -111,11 +112,6 @@ export class MonteCarloValidator {
       by_window_size: {}
     };
 
-    // Reutilizamos instancias para ahorrar memoria (POOLING)
-    const tracker = new RouletteTracker();
-    const winWin = new WinWinEngine(tracker);
-    const orion = new LogicEngine(tracker, winWin);
-
     // 1. Evaluación FPR (Bajo H0)
     const h0Spins = this.generateUniform(iterations + Math.max(...windowSizes));
     
@@ -133,7 +129,7 @@ export class MonteCarloValidator {
         }
 
         const window = h0Spins.slice(i, i + w);
-        const metrics = this._getEdgeScoreFast(tracker, orion, window);
+        const metrics = this._getEdgeScoreFast(window);
         
         results.h0.scores.push(metrics.confidence);
         if (metrics.confidence >= threshold) {
@@ -189,9 +185,8 @@ export class MonteCarloValidator {
       
       const windowRaw = h1Spins.slice(i, i + 100); 
       const window = windowRaw.map(s => ({ number: String(s) }));
-      
-      tracker.clearSession(); 
-      const metrics = this._getEdgeScoreFast(tracker, orion, window);
+
+      const metrics = this._getEdgeScoreFast(window);
       
       if (metrics.confidence >= threshold) results.h1.detections++;
       results.h1.totalOpportunities++;
@@ -214,8 +209,7 @@ export class MonteCarloValidator {
       }
       
       const window = driftSpins.slice(i, i + 100);
-      tracker.clearSession();
-      const metrics = this._getEdgeScoreFast(tracker, orion, window);
+      const metrics = this._getEdgeScoreFast(window);
       if (metrics.confidence >= threshold) driftDetections++;
     }
     const driftTpr = driftDetections / iterations;
@@ -268,8 +262,10 @@ export class MonteCarloValidator {
 
   /**
    * CÁLCULO DIRECTO: Evita bloqueos usando las fórmulas estadísticas puras
+   * @param {Array} spins - Array de objetos {number: string}
+   * @returns {{confidence: number, sprt: number}}
    */
-  _getEdgeScoreFast(tracker, orion, spins) {
+  _getEdgeScoreFast(spins) {
     try {
       const n = spins.length;
       if (n === 0) return { confidence: 0, sprt: 0 };

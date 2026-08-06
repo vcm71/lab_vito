@@ -2,9 +2,9 @@
  * Renderer para la pestaña 97_sesgo.
  * Diseño premium para visualización de sesgos físicos y auditoría estadística.
  */
-import { RED_NUMBERS } from './rouletteTracker.js';
+import { RED_NUMBERS } from './src/utils/numberMeta.js';
 
-export function renderSesgo97Tab(logicResult) {
+export function Sesgo97(logicResult) {
   const container = document.getElementById('tab-97-sesgo');
   if (!container) return;
 
@@ -21,6 +21,16 @@ export function renderSesgo97Tab(logicResult) {
 
   let html = `
     <div style="display: flex; flex-direction: column; gap: 1.5rem; padding-bottom: 2rem;">
+      <section class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;background:linear-gradient(145deg,#0f172a,#1e293b);border:1px solid rgba(251,191,36,0.18);">
+        <div>
+          <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em;">Pestaña Sesgo97</div>
+          <div style="font-size:1rem;font-weight:800;color:#fbbf24;">Análisis de sesgo físico y auditoría estadística</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:0.68rem;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Muestra analizada</div>
+          <div id="display-97-total-sample" style="font-size:1.25rem;font-family:var(--font-numbers);font-weight:800;color:#34d399;">${totalSpins}</div>
+        </div>
+      </section>
       
       <!-- ANALISIS_SESGO_DUAL -->
       <section class="panel" style="background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b;">
@@ -246,6 +256,8 @@ export function renderSesgo97Tab(logicResult) {
 
   container.innerHTML = html;
 }
+
+export { Sesgo97 as renderSesgo97Tab };
 
 function renderNumberTag(num, fontSize = '0.8rem') {
   let color = '#334155'; // Gris para Negro

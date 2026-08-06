@@ -20,7 +20,8 @@ Build a clean, deterministic testing foundation for the Orion domain without cha
 - `tests/unit/utils/` for pure utilities like `numberMeta`
 - `tests/unit/managers/` for domain managers like `DelayManager` and `SpinManager`
 - `tests/unit/tracker/` for tracker orchestration as the suite grows
-- `tests/integration/` for cross-module behavior later
+- `tests/integration/` for cross-module behavior
+- `tests/regression/` for regression safety suite (81 tests, 10 objectives)
 - `tests/fixtures/` for deterministic datasets
 - `tests/builders/` for object factories
 - `tests/helpers/` for custom assertions and shared test utilities
@@ -40,5 +41,5 @@ Build a clean, deterministic testing foundation for the Orion domain without cha
 
 ## Coverage targets for future phases
 - Expand from utility/managers to integration-level domain flows
-- Add regression tests for persistence and compatibility adapters
+- ~~Add regression tests for persistence and compatibility adapters~~ ✅ Done (Fase 4.3, 81 tests)
 - Keep coverage focused on meaningful behavior rather than line-count gaming

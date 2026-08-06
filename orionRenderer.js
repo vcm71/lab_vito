@@ -3,7 +3,7 @@
  * Encapsula toda la lógica visual del Árbitro de Señales.
  */
 import Chart from 'chart.js/auto';
-import { AMERICAN_WHEEL_ORDER, RED_NUMBERS } from './rouletteTracker.js';
+import { AMERICAN_WHEEL_ORDER, RED_NUMBERS } from './src/utils/numberMeta.js';
 
 let orionWheelChart = null;
 let orionRotation = 0;
